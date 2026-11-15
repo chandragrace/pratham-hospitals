@@ -197,7 +197,7 @@ func initTemplates() (map[string]*template.Template, error) {
 
 	for _, page := range pages {
 		pagePath := filepath.Join("templates", page+".html")
-		t, err := template.New(page).Funcs(funcMap).ParseFiles(layoutPath, pagePath)
+		t, err := template.New("layout.html").Funcs(funcMap).ParseFiles(layoutPath, pagePath)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing template %s: %w", page, err)
 		}

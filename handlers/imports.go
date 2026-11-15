@@ -45,7 +45,7 @@ func (h *ImportHandler) ImportMasterHandler(w http.ResponseWriter, r *http.Reque
 			AdminUser: adminUser,
 		}
 		t := h.tmpl["admin_import_master"]
-		_ = t.Execute(w, data)
+		_ = t.ExecuteTemplate(w, "layout.html", data)
 		return
 	}
 
@@ -74,7 +74,7 @@ func (h *ImportHandler) ImportMasterHandler(w http.ResponseWriter, r *http.Reque
 				ErrorMessage: "Please select a valid .xlsx or .csv file to upload",
 			}
 			t := h.tmpl["admin_import_master"]
-			_ = t.Execute(w, data)
+			_ = t.ExecuteTemplate(w, "layout.html", data)
 			return
 		}
 		defer file.Close()
@@ -100,7 +100,7 @@ func (h *ImportHandler) ImportMasterHandler(w http.ResponseWriter, r *http.Reque
 				ErrorMessage: "Error processing workbook: " + err.Error(),
 			}
 			t := h.tmpl["admin_import_master"]
-			_ = t.Execute(w, data)
+			_ = t.ExecuteTemplate(w, "layout.html", data)
 			return
 		}
 
@@ -128,7 +128,7 @@ func (h *ImportHandler) ImportMasterHandler(w http.ResponseWriter, r *http.Reque
 		}
 
 		t := h.tmpl["admin_import_master"]
-		_ = t.Execute(w, data)
+		_ = t.ExecuteTemplate(w, "layout.html", data)
 	}
 }
 
@@ -158,7 +158,7 @@ func (h *ImportHandler) ImportSecondaryHandler(w http.ResponseWriter, r *http.Re
 			HospitalMasterCount: hospCount,
 		}
 		t := h.tmpl["admin_import_secondary"]
-		_ = t.Execute(w, data)
+		_ = t.ExecuteTemplate(w, "layout.html", data)
 		return
 	}
 
@@ -193,7 +193,7 @@ func (h *ImportHandler) ImportSecondaryHandler(w http.ResponseWriter, r *http.Re
 				ErrorMessage:        "Please select a valid file to upload",
 			}
 			t := h.tmpl["admin_import_secondary"]
-			_ = t.Execute(w, data)
+			_ = t.ExecuteTemplate(w, "layout.html", data)
 			return
 		}
 		defer file.Close()
@@ -220,7 +220,7 @@ func (h *ImportHandler) ImportSecondaryHandler(w http.ResponseWriter, r *http.Re
 				ErrorMessage:        "Error processing secondary workbook: " + err.Error(),
 			}
 			t := h.tmpl["admin_import_secondary"]
-			_ = t.Execute(w, data)
+			_ = t.ExecuteTemplate(w, "layout.html", data)
 			return
 		}
 
@@ -250,7 +250,7 @@ func (h *ImportHandler) ImportSecondaryHandler(w http.ResponseWriter, r *http.Re
 		}
 
 		t := h.tmpl["admin_import_secondary"]
-		_ = t.Execute(w, data)
+		_ = t.ExecuteTemplate(w, "layout.html", data)
 	}
 }
 
@@ -297,7 +297,7 @@ func (h *ImportHandler) ImportHistoryHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	t := h.tmpl["admin_import_history"]
-	_ = t.Execute(w, data)
+	_ = t.ExecuteTemplate(w, "layout.html", data)
 }
 
 // DownloadErrorReportHandler generates and streams error Excel file

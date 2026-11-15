@@ -81,7 +81,7 @@ func (h *AdminHandler) DashboardHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Template not found", http.StatusInternalServerError)
 		return
 	}
-	_ = t.Execute(w, data)
+	_ = t.ExecuteTemplate(w, "layout.html", data)
 }
 
 // HospitalsHandler handles hospital list and manual administration
@@ -161,7 +161,7 @@ func (h *AdminHandler) HospitalsHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	t := h.tmpl["admin_hospitals"]
-	_ = t.Execute(w, data)
+	_ = t.ExecuteTemplate(w, "layout.html", data)
 }
 
 // HospitalSaveHandler handles create or update of hospital records
@@ -323,7 +323,7 @@ func (h *AdminHandler) DoctorsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t := h.tmpl["admin_doctors"]
-	_ = t.Execute(w, data)
+	_ = t.ExecuteTemplate(w, "layout.html", data)
 }
 
 // DoctorAssignSpecialtyHandler assigns a specialty to a doctor affiliation
@@ -429,7 +429,7 @@ func (h *AdminHandler) CustomFieldsHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	t := h.tmpl["admin_custom_fields"]
-	_ = t.Execute(w, data)
+	_ = t.ExecuteTemplate(w, "layout.html", data)
 }
 
 // CustomFieldCreateHandler creates a new dynamic field definition
@@ -524,7 +524,7 @@ func (h *AdminHandler) SettingsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		t := h.tmpl["admin_settings"]
-		_ = t.Execute(w, data)
+		_ = t.ExecuteTemplate(w, "layout.html", data)
 		return
 	}
 

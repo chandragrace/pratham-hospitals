@@ -145,7 +145,7 @@ func (h *PublicHandler) DirectoryHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Template not found", http.StatusInternalServerError)
 		return
 	}
-	_ = t.Execute(w, data)
+	_ = t.ExecuteTemplate(w, "layout.html", data)
 }
 
 // HospitalDetailPageData holds data for hospital_detail.html
@@ -211,7 +211,7 @@ func (h *PublicHandler) HospitalDetailHandler(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Template not found", http.StatusInternalServerError)
 		return
 	}
-	_ = t.Execute(w, data)
+	_ = t.ExecuteTemplate(w, "layout.html", data)
 }
 
 // SpecializationDetailHandler renders specialty detail drilldown
@@ -277,7 +277,7 @@ func (h *PublicHandler) SpecializationDetailHandler(w http.ResponseWriter, r *ht
 		http.Error(w, "Template not found", http.StatusInternalServerError)
 		return
 	}
-	_ = t.Execute(w, data)
+	_ = t.ExecuteTemplate(w, "layout.html", data)
 }
 
 // DoctorDetailHandler renders doctor profile drilldown
@@ -356,7 +356,7 @@ func (h *PublicHandler) DoctorDetailHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Template not found", http.StatusInternalServerError)
 		return
 	}
-	_ = t.Execute(w, data)
+	_ = t.ExecuteTemplate(w, "layout.html", data)
 }
 
 // BrowseGeoHandler renders the geographical drilldown page
@@ -392,5 +392,5 @@ func (h *PublicHandler) BrowseGeoHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Template not found", http.StatusInternalServerError)
 		return
 	}
-	_ = t.Execute(w, data)
+	_ = t.ExecuteTemplate(w, "layout.html", data)
 }

@@ -110,7 +110,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 			IsAdmin:   false,
 		}
 		t := h.tmpl["admin_login"]
-		_ = t.Execute(w, data)
+		_ = t.ExecuteTemplate(w, "layout.html", data)
 		return
 	}
 
@@ -141,7 +141,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 				Error:     "Invalid credentials or inactive account",
 			}
 			t := h.tmpl["admin_login"]
-			_ = t.Execute(w, data)
+			_ = t.ExecuteTemplate(w, "layout.html", data)
 			return
 		}
 
@@ -158,7 +158,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 				Error:     "Invalid password. Please try again.",
 			}
 			t := h.tmpl["admin_login"]
-			_ = t.Execute(w, data)
+			_ = t.ExecuteTemplate(w, "layout.html", data)
 			return
 		}
 
