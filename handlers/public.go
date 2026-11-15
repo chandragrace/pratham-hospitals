@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"html/template"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -42,7 +43,7 @@ type DirectoryPageData struct {
 	PageNumbers        []int
 }
 
-func (d *DirectoryPageData) HasType(t string) bool {
+func (d DirectoryPageData) HasType(t string) bool {
 	for _, cur := range d.Params.Types {
 		if cur == t {
 			return true
@@ -145,7 +146,9 @@ func (h *PublicHandler) DirectoryHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Template not found", http.StatusInternalServerError)
 		return
 	}
-	_ = t.ExecuteTemplate(w, "layout.html", data)
+	if err := t.ExecuteTemplate(w, "layout.html", &data); err != nil {
+		log.Printf("Template render error: %v", err)
+	}
 }
 
 // HospitalDetailPageData holds data for hospital_detail.html
@@ -161,7 +164,7 @@ type HospitalDetailPageData struct {
 	CustomFields      map[string]string
 }
 
-func (d *HospitalDetailPageData) DoctorInSpecialty(doc models.HospitalDoctor, specName string) bool {
+func (d HospitalDetailPageData) DoctorInSpecialty(doc models.HospitalDoctor, specName string) bool {
 	for _, s := range doc.Specialties {
 		if strings.EqualFold(s, specName) {
 			return true
@@ -211,7 +214,9 @@ func (h *PublicHandler) HospitalDetailHandler(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Template not found", http.StatusInternalServerError)
 		return
 	}
-	_ = t.ExecuteTemplate(w, "layout.html", data)
+	if err := t.ExecuteTemplate(w, "layout.html", &data); err != nil {
+		log.Printf("Template render error: %v", err)
+	}
 }
 
 // SpecializationDetailHandler renders specialty detail drilldown
@@ -277,7 +282,9 @@ func (h *PublicHandler) SpecializationDetailHandler(w http.ResponseWriter, r *ht
 		http.Error(w, "Template not found", http.StatusInternalServerError)
 		return
 	}
-	_ = t.ExecuteTemplate(w, "layout.html", data)
+	if err := t.ExecuteTemplate(w, "layout.html", &data); err != nil {
+		log.Printf("Template render error: %v", err)
+	}
 }
 
 // DoctorDetailHandler renders doctor profile drilldown
@@ -356,7 +363,9 @@ func (h *PublicHandler) DoctorDetailHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Template not found", http.StatusInternalServerError)
 		return
 	}
-	_ = t.ExecuteTemplate(w, "layout.html", data)
+	if err := t.ExecuteTemplate(w, "layout.html", &data); err != nil {
+		log.Printf("Template render error: %v", err)
+	}
 }
 
 // BrowseGeoHandler renders the geographical drilldown page
@@ -392,5 +401,7 @@ func (h *PublicHandler) BrowseGeoHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Template not found", http.StatusInternalServerError)
 		return
 	}
-	_ = t.ExecuteTemplate(w, "layout.html", data)
+	if err := t.ExecuteTemplate(w, "layout.html", &data); err != nil {
+		log.Printf("Template render error: %v", err)
+	}
 }
