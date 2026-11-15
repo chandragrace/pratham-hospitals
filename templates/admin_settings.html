@@ -1,0 +1,49 @@
+{{ define "content" }}
+<div class="main-container">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <div>
+      <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--dark-navy);">System Settings & Configuration</h1>
+      <p style="color: var(--neutral-muted); font-size: 0.9rem;">
+        Configure directory visibility rules, public search parameters, and contact metadata.
+      </p>
+    </div>
+    <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+  </div>
+
+  {{ if .Message }}
+    <div class="alert alert-success">{{ .Message }}</div>
+  {{ end }}
+
+  <div class="detail-card" style="max-width: 650px;">
+    <form action="/admin/settings/save" method="POST">
+      <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--dark-navy); margin-bottom: 1.25rem;">
+        Visibility & Public Search Policy
+      </h3>
+
+      <div style="background: var(--neutral-light); padding: 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+        <label class="checkbox-label" style="font-weight: 700; color: var(--neutral-dark);">
+          <input type="checkbox" name="show_blocked_in_public" value="true" {{ if eq .ShowBlocked "true" }}checked{{ end }}>
+          <span>Show 'Blocked' category hospitals in public directory search</span>
+        </label>
+        <p style="font-size: 0.8rem; color: var(--neutral-muted); margin-top: 0.35rem; margin-left: 1.75rem;">
+          Default behavior excludes Blocked hospitals from public search results and detail browsing while administrators retain full access in the Admin Portal.
+        </p>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Directory Portal Title</label>
+        <input type="text" name="site_title" class="filter-input" value="{{ .SiteTitle }}" required>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Support / Contact Email</label>
+        <input type="email" name="contact_email" class="filter-input" value="{{ .ContactEmail }}" required>
+      </div>
+
+      <div style="margin-top: 2rem;">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+      </div>
+    </form>
+  </div>
+</div>
+{{ end }}

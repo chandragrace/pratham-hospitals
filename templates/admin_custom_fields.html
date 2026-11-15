@@ -1,0 +1,142 @@
+{{ define "content" }}
+<div class="main-container">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--dark-navy);">Dynamic Custom Field Builder</h1>
+      <p style="color: var(--neutral-muted); font-size: 0.9rem;">
+        Add and configure dynamic custom fields for Hospitals, Specializations, or Doctors without modifying database code.
+      </p>
+    </div>
+    <button onclick="document.getElementById('add-field-modal').style.display='flex'" class="btn btn-primary">
+      + Create Custom Field
+    </button>
+  </div>
+
+  {{ if .Message }}
+    <div class="alert alert-success">{{ .Message }}</div>
+  {{ end }}
+
+  <!-- Active Fields Table -->
+  <div class="table-card">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Field Label</th>
+            <th>Field Key</th>
+            <th>Entity Scope</th>
+            <th>Data Type</th>
+            <th>Searchable</th>
+            <th>Filterable</th>
+            <th>Public Visibility</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .Fields }}
+            <tr>
+              <td style="font-weight: 700;">{{ .Label }}</td>
+              <td style="font-family: monospace; font-size: 0.8rem; color: var(--neutral-muted);">{{ .FieldKey }}</td>
+              <td>
+                {{ if eq .EntityScope "hospital" }}
+                  <span class="badge badge-pratham">Hospital</span>
+                {{ else if eq .EntityScope "doctor" }}
+                  <span class="badge badge-network">Doctor</span>
+                {{ else }}
+                  <span class="badge badge-pratham-neo">Specialty</span>
+                {{ end }}
+              </td>
+              <td><span class="badge badge-gray">{{ .DataType }}</span></td>
+              <td>{{ if .Searchable }}<span style="color: #16A34A; font-weight: 700;">Yes</span>{{ else }}<span style="color: #94A3B8;">No</span>{{ end }}</td>
+              <td>{{ if .Filterable }}<span style="color: #16A34A; font-weight: 700;">Yes</span>{{ else }}<span style="color: #94A3B8;">No</span>{{ end }}</td>
+              <td>
+                {{ if .IsPublic }}
+                  <span class="badge badge-pratham-neo">Public</span>
+                {{ else }}
+                  <span class="badge badge-blocked">Admin Only</span>
+                {{ end }}
+              </td>
+              <td>
+                {{ if .Active }}
+                  <span class="badge badge-pratham-neo">Active</span>
+                {{ else }}
+                  <span class="badge badge-gray">Disabled</span>
+                {{ end }}
+              </td>
+              <td>
+                <a href="/admin/custom-fields/delete?id={{ .ID }}" onclick="return confirm('Are you sure you want to remove this custom field definition?')" class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
+                  Delete
+                </a>
+              </td>
+            </tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Create Field Modal -->
+<div id="add-field-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 1rem;">
+  <div style="background: #FFFFFF; border-radius: var(--radius-lg); max-width: 520px; width: 100%; padding: 2rem; box-shadow: var(--shadow-lg);">
+    <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--dark-navy); margin-bottom: 1.25rem;">Create New Dynamic Field</h3>
+    <form action="/admin/custom-fields/create" method="POST">
+      <div class="filter-group">
+        <label class="filter-label">Field Label *</label>
+        <input type="text" name="label" class="filter-input" placeholder="e.g. ICU Bed Count, Accreditation" required>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Entity Scope *</label>
+        <select name="entity_scope" class="filter-select" required>
+          <option value="hospital">Hospital Scope</option>
+          <option value="doctor">Doctor Scope</option>
+          <option value="specialization">Specialization Scope</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Data Type *</label>
+        <select name="data_type" class="filter-select" required>
+          <option value="short_text">Short Text</option>
+          <option value="long_text">Long Text / Description</option>
+          <option value="number">Numeric</option>
+          <option value="date">Date</option>
+          <option value="single_select">Single Select (Dropdown)</option>
+          <option value="boolean">Boolean (Yes/No)</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Dropdown Options (Comma separated, for Select)</label>
+        <input type="text" name="options" class="filter-input" placeholder="Option 1, Option 2, Option 3">
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem;">
+        <label class="checkbox-label">
+          <input type="checkbox" name="searchable" value="true">
+          <span>Searchable</span>
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="filterable" value="true">
+          <span>Filterable</span>
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="is_public" value="true" checked>
+          <span>Visible to Public</span>
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="required" value="true">
+          <span>Required Field</span>
+        </label>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.75rem;">
+        <button type="button" onclick="document.getElementById('add-field-modal').style.display='none'" class="btn btn-secondary">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Field</button>
+      </div>
+    </form>
+  </div>
+</div>
+{{ end }}

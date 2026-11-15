@@ -1,0 +1,322 @@
+{{ define "content" }}
+<!-- Hero & Global Search Section -->
+<section class="hero-section">
+  <div style="max-width: 900px; margin: 0 auto;">
+    <h1 class="hero-title">Find Accredited Hospitals & Specialists</h1>
+    <p class="hero-subtitle">Search across verified Pratham, Pratham Neo, and Network healthcare centers by location, medical specialty, or physician credentials.</p>
+
+    <form action="/" method="GET" class="search-box-card">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" name="q" id="global-search-input" class="search-input" placeholder="Search hospital name, area (e.g. Kilpauk, Adyar), doctor or specialty..." value="{{ .Params.Q }}" autocomplete="off">
+      </div>
+      <!-- Preserve active filters on direct search -->
+      {{ if .Params.State }}<input type="hidden" name="state" value="{{ .Params.State }}">{{ end }}
+      {{ if .Params.District }}<input type="hidden" name="district" value="{{ .Params.District }}">{{ end }}
+      {{ if .Params.Location }}<input type="hidden" name="location" value="{{ .Params.Location }}">{{ end }}
+      {{ if .Params.Specialization }}<input type="hidden" name="specialization" value="{{ .Params.Specialization }}">{{ end }}
+      {{ range .Params.Types }}<input type="hidden" name="type" value="{{ . }}">{{ end }}
+      <button type="submit" class="search-btn">
+        <span>Search</span>
+      </button>
+    </form>
+
+    <!-- Key Metrics Stats -->
+    <div class="stats-banner">
+      <div class="stat-item">
+        <span class="stat-number">{{ .Stats.total_hospitals }}</span>
+        <span class="stat-label">Hospitals</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ .Stats.pratham_count }}</span>
+        <span class="stat-label">Pratham</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ .Stats.pratham_neo_count }}</span>
+        <span class="stat-label">Pratham Neo</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ .Stats.network_count }}</span>
+        <span class="stat-label">Network</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ .Stats.total_specializations }}</span>
+        <span class="stat-label">Specialties</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Main Results & Multi-filter Layout -->
+<div class="main-container">
+  <div class="layout-sidebar-main">
+    
+    <!-- Left Filter Sidebar -->
+    <aside class="filter-card">
+      <div class="filter-header">
+        <div class="filter-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          Refine Search
+        </div>
+        <a href="javascript:void(0);" onclick="clearAllFilters()" class="clear-all-link">Clear All</a>
+      </div>
+
+      <form id="filter-form" action="/" method="GET">
+        {{ if .Params.Q }}<input type="hidden" name="q" value="{{ .Params.Q }}">{{ end }}
+
+        <!-- State Filter -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-state">State</label>
+          <select name="state" id="filter-state" class="filter-select" onchange="this.form.submit()">
+            <option value="">All States</option>
+            {{ range .States }}
+              <option value="{{ .Name }}" {{ if eq $.Params.State .Name }}selected{{ end }}>{{ .Name }} ({{ .HospitalCount }})</option>
+            {{ end }}
+          </select>
+        </div>
+
+        <!-- District Filter (Cascaded) -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-district">District</label>
+          <select name="district" id="filter-district" class="filter-select" onchange="this.form.submit()">
+            <option value="">All Districts</option>
+            {{ range .Districts }}
+              <option value="{{ .Name }}" {{ if eq $.Params.District .Name }}selected{{ end }}>{{ .Name }} ({{ .HospitalCount }})</option>
+            {{ end }}
+          </select>
+        </div>
+
+        <!-- Location Filter (Cascaded) -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-location">Location / Area</label>
+          <select name="location" id="filter-location" class="filter-select" onchange="this.form.submit()">
+            <option value="">All Locations</option>
+            {{ range .Locations }}
+              <option value="{{ .Name }}" {{ if eq $.Params.Location .Name }}selected{{ end }}>{{ .Name }} ({{ .HospitalCount }})</option>
+            {{ end }}
+          </select>
+        </div>
+
+        <!-- Hospital Type Filter (Multi-select OR logic) -->
+        <div class="filter-group">
+          <label class="filter-label">Hospital Category</label>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" name="type" value="Pratham" {{ if .HasType "Pratham" }}checked{{ end }} onchange="this.form.submit()">
+              <span>Pratham</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="type" value="Pratham Neo" {{ if .HasType "Pratham Neo" }}checked{{ end }} onchange="this.form.submit()">
+              <span>Pratham Neo</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" name="type" value="Network" {{ if .HasType "Network" }}checked{{ end }} onchange="this.form.submit()">
+              <span>Network</span>
+            </label>
+            {{ if .ShowBlockedSetting }}
+            <label class="checkbox-label">
+              <input type="checkbox" name="type" value="Blocked" {{ if .HasType "Blocked" }}checked{{ end }} onchange="this.form.submit()">
+              <span>Blocked (Admin View)</span>
+            </label>
+            {{ end }}
+          </div>
+        </div>
+
+        <!-- Specialization Filter -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-specialization">Specialization</label>
+          <select name="specialization" id="filter-specialization" class="filter-select" onchange="this.form.submit()">
+            <option value="">All Specialties</option>
+            {{ range .Specializations }}
+              <option value="{{ .CanonicalName }}" {{ if eq $.Params.Specialization .CanonicalName }}selected{{ end }}>{{ .CanonicalName }} ({{ .HospitalCount }})</option>
+            {{ end }}
+          </select>
+        </div>
+
+        <!-- Doctor Filter -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-doctor">Doctor Name</label>
+          <input type="text" name="doctor" id="filter-doctor" class="filter-input" placeholder="e.g. Dr. Ramanathan..." value="{{ .Params.Doctor }}">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 0.5rem;">Apply Filters</button>
+      </form>
+    </aside>
+
+    <!-- Right Results Section -->
+    <main>
+      <!-- Active Filter Chips -->
+      <div class="active-chips-bar">
+        {{ if .Params.Q }}
+          <span class="filter-chip">
+            Keyword: "{{ .Params.Q }}"
+            <span class="filter-chip-remove" onclick="removeFilter('q', '')">×</span>
+          </span>
+        {{ end }}
+        {{ if .Params.State }}
+          <span class="filter-chip">
+            State: {{ .Params.State }}
+            <span class="filter-chip-remove" onclick="removeFilter('state', '')">×</span>
+          </span>
+        {{ end }}
+        {{ if .Params.District }}
+          <span class="filter-chip">
+            District: {{ .Params.District }}
+            <span class="filter-chip-remove" onclick="removeFilter('district', '')">×</span>
+          </span>
+        {{ end }}
+        {{ if .Params.Location }}
+          <span class="filter-chip">
+            Location: {{ .Params.Location }}
+            <span class="filter-chip-remove" onclick="removeFilter('location', '')">×</span>
+          </span>
+        {{ end }}
+        {{ range .Params.Types }}
+          <span class="filter-chip">
+            Type: {{ . }}
+            <span class="filter-chip-remove" onclick="removeFilter('type', '{{ . }}')">×</span>
+          </span>
+        {{ end }}
+        {{ if .Params.Specialization }}
+          <span class="filter-chip">
+            Specialty: {{ .Params.Specialization }}
+            <span class="filter-chip-remove" onclick="removeFilter('specialization', '')">×</span>
+          </span>
+        {{ end }}
+        {{ if .Params.Doctor }}
+          <span class="filter-chip">
+            Doctor: "{{ .Params.Doctor }}"
+            <span class="filter-chip-remove" onclick="removeFilter('doctor', '')">×</span>
+          </span>
+        {{ end }}
+      </div>
+
+      <!-- Results Header Bar -->
+      <div class="results-header-bar">
+        <h2 class="results-count-title">
+          Showing {{ .Result.TotalCount }} Hospitals Found
+        </h2>
+
+        <!-- Sort Control -->
+        <div class="sort-controls">
+          <label for="sort-by" style="color: var(--neutral-muted); font-weight: 600;">Sort By:</label>
+          <select id="sort-by" class="filter-select" style="width: auto; padding: 0.35rem 0.65rem;" onchange="window.location.href = updateQueryString('sort_by', this.value)">
+            <option value="name" {{ if eq .Params.SortBy "name" }}selected{{ end }}>Hospital Name (A-Z)</option>
+            <option value="sno" {{ if eq .Params.SortBy "sno" }}selected{{ end }}>Source S.NO</option>
+            <option value="location" {{ if eq .Params.SortBy "location" }}selected{{ end }}>Location</option>
+            <option value="district" {{ if eq .Params.SortBy "district" }}selected{{ end }}>District</option>
+            <option value="type" {{ if eq .Params.SortBy "type" }}selected{{ end }}>Type</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Spreadsheet-Style Results Table -->
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 60px;">S.NO</th>
+                <th>Hospital Name</th>
+                <th>Location / Area</th>
+                <th>District</th>
+                <th>State</th>
+                <th>Type</th>
+                <th>Specialties</th>
+                <th>Doctors</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{ if eq (len .Result.Hospitals) 0 }}
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 3rem 1rem;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" style="margin-bottom: 0.5rem;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <h3 style="font-size: 1.1rem; color: var(--neutral-dark);">No Hospitals Found</h3>
+                    <p style="color: var(--neutral-muted); font-size: 0.875rem; margin-top: 0.25rem;">Try adjusting or clearing your filters to see more results.</p>
+                    <button class="btn btn-secondary" onclick="clearAllFilters()" style="margin-top: 1rem;">Reset All Filters</button>
+                  </td>
+                </tr>
+              {{ else }}
+                {{ range .Result.Hospitals }}
+                  <tr class="clickable-row" data-href="/hospital/{{ .ID }}">
+                    <td style="font-weight: 600; color: var(--neutral-muted);">
+                      {{ if .SourceSno }}{{ .SourceSno }}{{ else }}—{{ end }}
+                    </td>
+                    <td>
+                      <a href="/hospital/{{ .ID }}" style="font-weight: 700; font-size: 0.95rem; color: var(--primary-blue);">
+                        {{ .HospitalName }}
+                      </a>
+                    </td>
+                    <td>{{ if .Location }}{{ .Location }}{{ else }}—{{ end }}</td>
+                    <td>{{ if .District }}{{ .District }}{{ else }}—{{ end }}</td>
+                    <td>{{ if .State }}{{ .State }}{{ else }}—{{ end }}</td>
+                    <td>
+                      {{ if eq .Type "Pratham" }}
+                        <span class="badge badge-pratham">Pratham</span>
+                      {{ else if eq .Type "Pratham Neo" }}
+                        <span class="badge badge-pratham-neo">Pratham Neo</span>
+                      {{ else if eq .Type "Network" }}
+                        <span class="badge badge-network">Network</span>
+                      {{ else if eq .Type "Blocked" }}
+                        <span class="badge badge-blocked">Blocked</span>
+                      {{ else }}
+                        <span class="badge badge-gray">{{ .Type }}</span>
+                      {{ end }}
+                    </td>
+                    <td>
+                      {{ if gt .SpecialtyCount 0 }}
+                        <span class="badge badge-pratham" title="{{ range .SpecialtiesList }}{{ . }}, {{ end }}">
+                          {{ .SpecialtyCount }} Specialties
+                        </span>
+                      {{ else }}
+                        <span style="color: #94A3B8; font-size: 0.8rem;">—</span>
+                      {{ end }}
+                    </td>
+                    <td>
+                      {{ if gt .DoctorCount 0 }}
+                        <span class="badge badge-network">{{ .DoctorCount }} Doctors</span>
+                      {{ else }}
+                        <span style="color: #94A3B8; font-size: 0.8rem;">—</span>
+                      {{ end }}
+                    </td>
+                  </tr>
+                {{ end }}
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        {{ if gt .Result.TotalPages 1 }}
+          <div class="pagination-bar">
+            <span style="font-size: 0.85rem; color: var(--neutral-muted);">
+              Page <strong>{{ .Result.Page }}</strong> of <strong>{{ .Result.TotalPages }}</strong> ({{ .Result.TotalCount }} total records)
+            </span>
+            <div class="pagination-links">
+              {{ if gt .Result.Page 1 }}
+                <a href="javascript:void(0);" onclick="window.location.href = updateQueryString('page', '{{ sub .Result.Page 1 }}')" class="page-btn">« Prev</a>
+              {{ end }}
+
+              {{ range $p := .PageNumbers }}
+                <a href="javascript:void(0);" onclick="window.location.href = updateQueryString('page', '{{ $p }}')" class="page-btn {{ if eq $p $.Result.Page }}active{{ end }}">{{ $p }}</a>
+              {{ end }}
+
+              {{ if lt .Result.Page .Result.TotalPages }}
+                <a href="javascript:void(0);" onclick="window.location.href = updateQueryString('page', '{{ add .Result.Page 1 }}')" class="page-btn">Next »</a>
+              {{ end }}
+            </div>
+          </div>
+        {{ end }}
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+function updateQueryString(key, val) {
+  const url = new URL(window.location.href);
+  url.searchParams.set(key, val);
+  return url.toString();
+}
+</script>
+{{ end }}

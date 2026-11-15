@@ -1,0 +1,187 @@
+{{ define "content" }}
+<div class="main-container">
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb">
+    <a href="/">Directory</a>
+    <span class="breadcrumb-separator">/</span>
+    {{ if .Hospital.State }}
+      <a href="/browse/states/{{ .Hospital.State }}">{{ .Hospital.State }}</a>
+      <span class="breadcrumb-separator">/</span>
+    {{ end }}
+    {{ if .Hospital.District }}
+      <a href="/browse/districts/{{ .Hospital.District }}">{{ .Hospital.District }}</a>
+      <span class="breadcrumb-separator">/</span>
+    {{ end }}
+    {{ if .Hospital.Location }}
+      <a href="/browse/locations/{{ .Hospital.Location }}">{{ .Hospital.Location }}</a>
+      <span class="breadcrumb-separator">/</span>
+    {{ end }}
+    <span class="breadcrumb-current">{{ .Hospital.HospitalName }}</span>
+  </nav>
+
+  <!-- Hospital Primary Info Card -->
+  <div class="detail-card">
+    <div class="detail-header">
+      <div class="detail-title">
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <h1>{{ .Hospital.HospitalName }}</h1>
+          {{ if eq .Hospital.Type "Pratham" }}
+            <span class="badge badge-pratham" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">Pratham</span>
+          {{ else if eq .Hospital.Type "Pratham Neo" }}
+            <span class="badge badge-pratham-neo" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">Pratham Neo</span>
+          {{ else if eq .Hospital.Type "Network" }}
+            <span class="badge badge-network" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">Network</span>
+          {{ else if eq .Hospital.Type "Blocked" }}
+            <span class="badge badge-blocked" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">Blocked</span>
+          {{ else }}
+            <span class="badge badge-gray" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">{{ .Hospital.Type }}</span>
+          {{ end }}
+        </div>
+        <p class="detail-subtitle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          {{ if .Hospital.Location }}{{ .Hospital.Location }}, {{ end }}{{ if .Hospital.District }}{{ .Hospital.District }}, {{ end }}{{ if .Hospital.State }}{{ .Hospital.State }}{{ end }}
+        </p>
+      </div>
+
+      <div>
+        <a href="/" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to Directory
+        </a>
+      </div>
+    </div>
+
+    <!-- Metadata Grid -->
+    <div class="info-grid">
+      <div class="info-item">
+        <label>Hospital ID</label>
+        <p style="font-family: monospace; font-size: 0.85rem; color: var(--neutral-muted);">{{ .Hospital.ID }}</p>
+      </div>
+      <div class="info-item">
+        <label>Source Serial No (S.NO)</label>
+        <p>{{ if .Hospital.SourceSno }}{{ .Hospital.SourceSno }}{{ else }}—{{ end }}</p>
+      </div>
+      <div class="info-item">
+        <label>Location / Area</label>
+        <p>{{ if .Hospital.Location }}{{ .Hospital.Location }}{{ else }}—{{ end }}</p>
+      </div>
+      <div class="info-item">
+        <label>District</label>
+        <p>{{ if .Hospital.District }}{{ .Hospital.District }}{{ else }}—{{ end }}</p>
+      </div>
+      <div class="info-item">
+        <label>State</label>
+        <p>{{ if .Hospital.State }}{{ .Hospital.State }}{{ else }}—{{ end }}</p>
+      </div>
+      <div class="info-item">
+        <label>Address</label>
+        <p>{{ if .Hospital.Address }}{{ .Hospital.Address }}{{ else }}—{{ end }}</p>
+      </div>
+    </div>
+
+    <!-- Dynamic Custom Fields if populated -->
+    {{ if gt (len .CustomFields) 0 }}
+      <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px dashed var(--border-color);">
+        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary-blue); margin-bottom: 0.75rem;">Hospital Facilities & Information</h4>
+        <div class="info-grid">
+          {{ range $label, $val := .CustomFields }}
+            <div class="info-item">
+              <label>{{ $label }}</label>
+              <p>{{ $val }}</p>
+            </div>
+          {{ end }}
+        </div>
+      </div>
+    {{ end }}
+  </div>
+
+  <!-- Medical Specializations & Doctors Section -->
+  <div style="margin-top: 2rem;">
+    <h2 style="font-size: 1.35rem; font-weight: 700; color: var(--dark-navy); margin-bottom: 1rem;">
+      Clinical Specialties & Medical Team
+    </h2>
+
+    {{ if and (eq (len .Specialties) 0) (eq (len .Doctors) 0) }}
+      <div class="detail-card" style="text-align: center; padding: 2.5rem 1rem;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" style="margin-bottom: 0.5rem;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <h3 style="font-size: 1rem; color: var(--neutral-dark);">Specialties Not Yet Listed</h3>
+        <p style="color: var(--neutral-muted); font-size: 0.85rem; margin-top: 0.25rem;">Clinical departments and doctor affiliations can be imported via the Admin Specialization & Doctor Upload module.</p>
+      </div>
+    {{ else }}
+      <!-- Listed Specialties -->
+      {{ range .Specialties }}
+        {{ $specName := .SpecialtyName }}
+        <div class="specialty-section-card">
+          <div class="specialty-section-header">
+            <div>
+              <h3>{{ .SpecialtyName }}</h3>
+              {{ if .Description }}
+                <p style="font-size: 0.85rem; color: var(--neutral-muted); margin-top: 0.15rem;">{{ .Description }}</p>
+              {{ end }}
+            </div>
+            <span class="badge badge-pratham">{{ .DoctorCount }} Specialist(s)</span>
+          </div>
+
+          <div>
+            {{ $hasDocs := false }}
+            {{ range $.Doctors }}
+              {{ if $.DoctorInSpecialty . $specName }}
+                {{ $hasDocs = true }}
+                <div class="doctor-item">
+                  <div>
+                    <span class="doctor-name">
+                      <a href="/doctor/{{ .DoctorID }}">{{ .DisplayName }}</a>
+                    </span>
+                    {{ if .Qualifications }}
+                      <span class="doctor-credentials">{{ .Qualifications }}</span>
+                    {{ end }}
+                  </div>
+                  <div>
+                    <span class="badge badge-gray">Active</span>
+                  </div>
+                </div>
+              {{ end }}
+            {{ end }}
+
+            {{ if not $hasDocs }}
+              <div style="padding: 1rem 1.25rem; color: var(--neutral-muted); font-size: 0.85rem; font-style: italic;">
+                Department active. Specialist physicians undergoing profile review.
+              </div>
+            {{ end }}
+          </div>
+        </div>
+      {{ end }}
+
+      <!-- Unassigned Doctors (Needs Specialty Review) -->
+      {{ if gt (len .UnassignedDoctors) 0 }}
+        <div class="specialty-section-card" style="border-color: #FDE68A;">
+          <div class="specialty-section-header" style="background: #FFFBEB;">
+            <div>
+              <h3 style="color: #B45309;">Physicians Pending Specialty Assignment</h3>
+              <p style="font-size: 0.85rem; color: #92400E; margin-top: 0.15rem;">
+                Preserved from import records with unassigned specialization. Marked for administrative review.
+              </p>
+            </div>
+            <span class="badge badge-blocked" style="background: #FEF3C7; color: #B45309; border-color: #FDE68A;">Needs Review</span>
+          </div>
+          <div>
+            {{ range .UnassignedDoctors }}
+              <div class="doctor-item">
+                <div>
+                  <span class="doctor-name"><a href="/doctor/{{ .DoctorID }}">{{ .DisplayName }}</a></span>
+                  {{ if .Qualifications }}
+                    <span class="doctor-credentials">{{ .Qualifications }}</span>
+                  {{ end }}
+                </div>
+                <div>
+                  <span class="badge badge-gray">General Practice / Specialty Unspecified</span>
+                </div>
+              </div>
+            {{ end }}
+          </div>
+        </div>
+      {{ end }}
+    {{ end }}
+  </div>
+</div>
+{{ end }}

@@ -1,0 +1,201 @@
+{{ define "content" }}
+<div class="main-container">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--dark-navy);">Hospital Master Records</h1>
+      <p style="color: var(--neutral-muted); font-size: 0.9rem;">
+        Direct database management: create new hospital identities, update geographical attributes, and configure canonical types.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="/admin/import/master" class="btn btn-secondary">Upload Excel</a>
+      <button onclick="document.getElementById('add-modal').style.display='flex'" class="btn btn-primary">
+        + Add New Hospital
+      </button>
+    </div>
+  </div>
+
+  {{ if .Message }}
+    <div class="alert alert-success">{{ .Message }}</div>
+  {{ end }}
+
+  <!-- Search & Filter Bar -->
+  <div class="detail-card" style="margin-bottom: 1.5rem; padding: 1rem;">
+    <form action="/admin/hospitals" method="GET" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+      <input type="text" name="q" class="filter-input" style="flex: 1; min-width: 250px;" placeholder="Search hospital name, location..." value="{{ .Q }}">
+      <select name="type" class="filter-select" style="width: auto;">
+        <option value="">All Categories</option>
+        <option value="Pratham" {{ if eq .Type "Pratham" }}selected{{ end }}>Pratham</option>
+        <option value="Pratham Neo" {{ if eq .Type "Pratham Neo" }}selected{{ end }}>Pratham Neo</option>
+        <option value="Network" {{ if eq .Type "Network" }}selected{{ end }}>Network</option>
+        <option value="Blocked" {{ if eq .Type "Blocked" }}selected{{ end }}>Blocked</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="/admin/hospitals" class="btn btn-secondary">Reset</a>
+    </form>
+  </div>
+
+  <!-- Hospitals Table -->
+  <div class="table-card">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>S.NO</th>
+            <th>Hospital Name</th>
+            <th>Location</th>
+            <th>District</th>
+            <th>State</th>
+            <th>Canonical Type</th>
+            <th>Specialties</th>
+            <th>Doctors</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .Hospitals }}
+            <tr>
+              <td>{{ if .SourceSno }}{{ .SourceSno }}{{ else }}—{{ end }}</td>
+              <td style="font-weight: 700;">
+                <a href="/hospital/{{ .ID }}" target="_blank" style="color: var(--primary-blue);">{{ .HospitalName }}</a>
+              </td>
+              <td>{{ if .Location }}{{ .Location }}{{ else }}—{{ end }}</td>
+              <td>{{ if .District }}{{ .District }}{{ else }}—{{ end }}</td>
+              <td>{{ if .State }}{{ .State }}{{ else }}—{{ end }}</td>
+              <td>
+                {{ if eq .Type "Pratham" }}
+                  <span class="badge badge-pratham">Pratham</span>
+                {{ else if eq .Type "Pratham Neo" }}
+                  <span class="badge badge-pratham-neo">Pratham Neo</span>
+                {{ else if eq .Type "Network" }}
+                  <span class="badge badge-network">Network</span>
+                {{ else if eq .Type "Blocked" }}
+                  <span class="badge badge-blocked">Blocked</span>
+                {{ else }}
+                  <span class="badge badge-gray">{{ .Type }}</span>
+                {{ end }}
+              </td>
+              <td><span class="badge badge-pratham">{{ .SpecialtyCount }}</span></td>
+              <td><span class="badge badge-network">{{ .DoctorCount }}</span></td>
+              <td>
+                <div style="display: flex; gap: 0.35rem;">
+                  <button onclick="openEditModal('{{ .ID }}', '{{ .HospitalName }}', '{{ if .SourceSno }}{{ .SourceSno }}{{ end }}', '{{ if .Location }}{{ .Location }}{{ end }}', '{{ if .District }}{{ .District }}{{ end }}', '{{ if .State }}{{ .State }}{{ end }}', '{{ .Type }}')" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
+                    Edit
+                  </button>
+                  {{ if eq .Type "Blocked" }}
+                    <a href="/admin/hospitals/toggle-block?id={{ .ID }}&action=unblock" class="btn btn-success" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
+                      Unblock
+                    </a>
+                  {{ else }}
+                    <a href="/admin/hospitals/toggle-block?id={{ .ID }}&action=block" class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
+                      Block
+                    </a>
+                  {{ end }}
+                </div>
+              </td>
+            </tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Modal -->
+<div id="add-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 1rem;">
+  <div style="background: #FFFFFF; border-radius: var(--radius-lg); max-width: 500px; width: 100%; padding: 2rem; box-shadow: var(--shadow-lg);">
+    <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--dark-navy); margin-bottom: 1.25rem;">Add New Hospital Master Record</h3>
+    <form action="/admin/hospitals/save" method="POST">
+      <div class="filter-group">
+        <label class="filter-label">Hospital Name *</label>
+        <input type="text" name="hospital_name" class="filter-input" required>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Source S.NO (Reference)</label>
+        <input type="number" name="source_sno" class="filter-input">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Location / Area</label>
+        <input type="text" name="location" class="filter-input" placeholder="e.g. Kilpauk, Adyar">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">District</label>
+        <input type="text" name="district" class="filter-input" placeholder="e.g. Chennai">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">State</label>
+        <input type="text" name="state" class="filter-input" value="Tamil Nadu">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Canonical Category *</label>
+        <select name="type" class="filter-select" required>
+          <option value="Pratham">Pratham</option>
+          <option value="Pratham Neo">Pratham Neo</option>
+          <option value="Network">Network</option>
+          <option value="Blocked">Blocked</option>
+        </select>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+        <button type="button" onclick="document.getElementById('add-modal').style.display='none'" class="btn btn-secondary">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Hospital</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 1rem;">
+  <div style="background: #FFFFFF; border-radius: var(--radius-lg); max-width: 500px; width: 100%; padding: 2rem; box-shadow: var(--shadow-lg);">
+    <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--dark-navy); margin-bottom: 1.25rem;">Edit Hospital Record</h3>
+    <form action="/admin/hospitals/save" method="POST">
+      <input type="hidden" name="id" id="edit-id">
+      <div class="filter-group">
+        <label class="filter-label">Hospital Name *</label>
+        <input type="text" name="hospital_name" id="edit-name" class="filter-input" required>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Source S.NO</label>
+        <input type="number" name="source_sno" id="edit-sno" class="filter-input">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Location / Area</label>
+        <input type="text" name="location" id="edit-location" class="filter-input">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">District</label>
+        <input type="text" name="district" id="edit-district" class="filter-input">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">State</label>
+        <input type="text" name="state" id="edit-state" class="filter-input">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Canonical Category *</label>
+        <select name="type" id="edit-type" class="filter-select" required>
+          <option value="Pratham">Pratham</option>
+          <option value="Pratham Neo">Pratham Neo</option>
+          <option value="Network">Network</option>
+          <option value="Blocked">Blocked</option>
+        </select>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+        <button type="button" onclick="document.getElementById('edit-modal').style.display='none'" class="btn btn-secondary">Cancel</button>
+        <button type="submit" class="btn btn-primary">Update Record</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openEditModal(id, name, sno, loc, dist, state, type) {
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-name').value = name;
+  document.getElementById('edit-sno').value = sno;
+  document.getElementById('edit-location').value = loc;
+  document.getElementById('edit-district').value = dist;
+  document.getElementById('edit-state').value = state;
+  document.getElementById('edit-type').value = type;
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+</script>
+{{ end }}

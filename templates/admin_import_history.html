@@ -1,0 +1,91 @@
+{{ define "content" }}
+<div class="main-container">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <div>
+      <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--dark-navy);">Import Audit History</h1>
+      <p style="color: var(--neutral-muted); font-size: 0.9rem;">
+        Historical audit records of all primary hospital master and secondary doctor uploads with downloadable error reports.
+      </p>
+    </div>
+    <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+  </div>
+
+  <div class="table-card">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Batch ID</th>
+            <th>File Name</th>
+            <th>Upload Type</th>
+            <th>Uploader</th>
+            <th>Total Rows</th>
+            <th>Created</th>
+            <th>Updated</th>
+            <th>Warnings / Review</th>
+            <th>Invalid</th>
+            <th>Status</th>
+            <th>Error Report</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ if eq (len .Batches) 0 }}
+            <tr>
+              <td colspan="12" style="text-align: center; padding: 2.5rem; color: var(--neutral-muted);">
+                No import batches have been recorded yet.
+              </td>
+            </tr>
+          {{ else }}
+            {{ range .Batches }}
+              <tr>
+                <td style="white-space: nowrap; font-size: 0.8rem; color: var(--neutral-muted);">
+                  {{ .CreatedAt.Format "02 Jan 2006, 15:04:05" }}
+                </td>
+                <td style="font-family: monospace; font-size: 0.75rem;">{{ .ID }}</td>
+                <td style="font-weight: 700;">{{ .FileName }}</td>
+                <td>
+                  {{ if eq .UploadType "hospital_master" }}
+                    <span class="badge badge-pratham">Hospital Master</span>
+                  {{ else }}
+                    <span class="badge badge-network">Doctor & Specialization</span>
+                  {{ end }}
+                </td>
+                <td>{{ .Uploader }}</td>
+                <td style="font-weight: 700;">{{ .TotalRows }}</td>
+                <td style="color: #16A34A; font-weight: 700;">+{{ .CreatedRows }}</td>
+                <td style="color: var(--primary-blue);">{{ .UpdatedRows }}</td>
+                <td>
+                  {{ if gt .ReviewRows 0 }}
+                    <span class="badge badge-blocked" style="background: #FEF3C7; color: #B45309; border-color: #FDE68A;">{{ .ReviewRows }}</span>
+                  {{ else }}
+                    0
+                  {{ end }}
+                </td>
+                <td>
+                  {{ if gt .InvalidRows 0 }}
+                    <span class="badge badge-blocked">{{ .InvalidRows }}</span>
+                  {{ else }}
+                    0
+                  {{ end }}
+                </td>
+                <td><span class="badge badge-pratham-neo">{{ .Status }}</span></td>
+                <td>
+                  {{ if or (gt .InvalidRows 0) (gt .ReviewRows 0) }}
+                    <a href="/admin/import/error-report/{{ .ID }}" class="btn btn-danger" style="padding: 0.2rem 0.55rem; font-size: 0.75rem;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      Download Excel Report
+                    </a>
+                  {{ else }}
+                    <span style="color: #16A34A; font-size: 0.8rem; font-weight: 600;">None (0 Errors)</span>
+                  {{ end }}
+                </td>
+              </tr>
+            {{ end }}
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{ end }}

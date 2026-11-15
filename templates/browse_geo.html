@@ -1,0 +1,106 @@
+{{ define "content" }}
+<div class="main-container">
+  <nav class="breadcrumb">
+    <a href="/">Directory</a>
+    <span class="breadcrumb-separator">/</span>
+    <span class="breadcrumb-current">Browse by Geography</span>
+  </nav>
+
+  <div class="detail-card">
+    <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--dark-navy); margin-bottom: 0.5rem;">
+      Hierarchical Healthcare Directory
+    </h1>
+    <p style="color: var(--neutral-muted);">
+      Drill down through regions, districts, and local neighborhoods across the Pratham healthcare network.
+    </p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+    <!-- States Card -->
+    <div class="table-card">
+      <div style="background: var(--light-blue); padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-blue); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.1rem; color: var(--deep-blue); font-weight: 700;">States / Territories</h3>
+        <span class="badge badge-pratham">{{ len .States }} States</span>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>State</th>
+            <th>Hospitals</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .States }}
+            <tr>
+              <td style="font-weight: 700;">{{ .Name }}</td>
+              <td><span class="badge badge-pratham">{{ .HospitalCount }}</span></td>
+              <td><a href="/?state={{ .Name }}" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Explore</a></td>
+            </tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Districts Card -->
+    <div class="table-card">
+      <div style="background: #F0FDF4; padding: 1rem 1.25rem; border-bottom: 1px solid #BBF7D0; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.1rem; color: #15803D; font-weight: 700;">Districts</h3>
+        <span class="badge badge-pratham-neo">{{ len .Districts }} Districts</span>
+      </div>
+      <div style="max-height: 450px; overflow-y: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>District</th>
+              <th>State</th>
+              <th>Hospitals</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ range .Districts }}
+              <tr>
+                <td style="font-weight: 700;">{{ .Name }}</td>
+                <td style="color: var(--neutral-muted); font-size: 0.8rem;">{{ .ParentName }}</td>
+                <td><span class="badge badge-pratham-neo">{{ .HospitalCount }}</span></td>
+                <td><a href="/?district={{ .Name }}&state={{ .ParentName }}" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Explore</a></td>
+              </tr>
+            {{ end }}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Locations Card -->
+    <div class="table-card">
+      <div style="background: #EEF2FF; padding: 1rem 1.25rem; border-bottom: 1px solid #C7D2FE; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.1rem; color: #4338CA; font-weight: 700;">Locations & Neighborhoods</h3>
+        <span class="badge badge-network">{{ len .Locations }} Areas</span>
+      </div>
+      <div style="max-height: 450px; overflow-y: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Area / Locality</th>
+              <th>District</th>
+              <th>Hospitals</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ range .Locations }}
+              <tr>
+                <td style="font-weight: 700;">{{ .Name }}</td>
+                <td style="color: var(--neutral-muted); font-size: 0.8rem;">{{ .ParentName }}</td>
+                <td><span class="badge badge-network">{{ .HospitalCount }}</span></td>
+                <td><a href="/?location={{ .Name }}" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Explore</a></td>
+              </tr>
+            {{ end }}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{{ end }}
