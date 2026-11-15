@@ -3,6 +3,7 @@ package services
 import (
 	"database/sql"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -102,6 +103,16 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 			return nil, "", fmt.Errorf("error starting transaction: %w", err)
 		}
 		defer tx.Rollback()
+
+		// Pre-create batch record to satisfy foreign key in import_row_logs
+		batchSQL := `
+			INSERT INTO import_batches 
+			(id, file_name, upload_type, uploader, total_rows, accepted_rows, created_rows, updated_rows, skipped_rows, invalid_rows, review_rows, status, summary_notes)
+			VALUES ($1, $2, 'hospital_master', 'admin', 0, 0, 0, 0, 0, 0, 0, 'processing', 'Import started')
+		`
+		if _, err := tx.Exec(batchSQL, batchID, filename); err != nil {
+			return nil, "", fmt.Errorf("error initializing import batch: %w", err)
+		}
 	}
 
 	createdCount := 0
@@ -275,8 +286,13 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 				(id, batch_id, row_number, source_data, status, error_message, recommended_action)
 				VALUES ($1, $2, $3, $4, $5, $6, $7)
 			`
-			sourceJSON := fmt.Sprintf(`{"name":"%s","location":"%s","type":"%s"}`, pRow.HospitalName, pRow.Location, rawType)
-			_, _ = tx.Exec(logSQL, uuid.New().String(), batchID, rowNum, sourceJSON, pRow.Status, pRow.Message, "")
+			srcMap := map[string]string{
+				"name":     pRow.HospitalName,
+				"location": pRow.Location,
+				"type":     rawType,
+			}
+			srcBytes, _ := json.Marshal(srcMap)
+			_, _ = tx.Exec(logSQL, uuid.New().String(), batchID, rowNum, string(srcBytes), pRow.Status, pRow.Message, "")
 		}
 
 		preview.Rows = append(preview.Rows, pRow)
@@ -285,17 +301,16 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 	preview.TotalRows = len(preview.Rows)
 
 	if !dryRun && tx != nil {
-		// Insert Batch Log
-		batchSQL := `
-			INSERT INTO import_batches 
-			(id, file_name, upload_type, uploader, total_rows, accepted_rows, created_rows, updated_rows, skipped_rows, invalid_rows, review_rows, status, summary_notes)
-			VALUES ($1, $2, 'hospital_master', 'admin', $3, $4, $5, $6, 0, $7, $8, 'completed', $9)
+		updateBatchSQL := `
+			UPDATE import_batches 
+			SET total_rows = $1, accepted_rows = $2, created_rows = $3, updated_rows = $4, invalid_rows = $5, review_rows = $6, status = 'completed', summary_notes = $7
+			WHERE id = $8
 		`
 		summaryNotes := fmt.Sprintf("Imported %d new hospitals, updated %d, with %d warnings and %d invalid rows",
 			createdCount, updatedCount, warningCount, invalidCount)
-		_, err := tx.Exec(batchSQL, batchID, filename, preview.TotalRows, createdCount+updatedCount, createdCount, updatedCount, invalidCount, warningCount, summaryNotes)
+		_, err := tx.Exec(updateBatchSQL, preview.TotalRows, createdCount+updatedCount, createdCount, updatedCount, invalidCount, warningCount, summaryNotes, batchID)
 		if err != nil {
-			return nil, "", fmt.Errorf("error saving import batch: %w", err)
+			return nil, "", fmt.Errorf("error updating import batch: %w", err)
 		}
 
 		if err := tx.Commit(); err != nil {
@@ -387,6 +402,16 @@ func (s *ExcelService) ParseSecondaryUpload(r io.Reader, filename string, dryRun
 			return nil, "", fmt.Errorf("error starting transaction: %w", err)
 		}
 		defer tx.Rollback()
+
+		// Pre-create batch record to satisfy foreign key in import_row_logs
+		batchSQL := `
+			INSERT INTO import_batches 
+			(id, file_name, upload_type, uploader, total_rows, accepted_rows, created_rows, updated_rows, skipped_rows, invalid_rows, review_rows, status, summary_notes)
+			VALUES ($1, $2, 'specialization_doctor', 'admin', 0, 0, 0, 0, 0, 0, 0, 'processing', 'Import started')
+		`
+		if _, err := tx.Exec(batchSQL, batchID, filename); err != nil {
+			return nil, "", fmt.Errorf("error initializing import batch: %w", err)
+		}
 	}
 
 	validCount := 0
@@ -567,8 +592,13 @@ func (s *ExcelService) ParseSecondaryUpload(r io.Reader, filename string, dryRun
 				(id, batch_id, row_number, source_data, status, error_message, recommended_action)
 				VALUES ($1, $2, $3, $4, $5, $6, $7)
 			`
-			sourceJSON := fmt.Sprintf(`{"hospital":"%s","specialty":"%s","doctor":"%s"}`, pRow.HospitalName, pRow.Specialization, pRow.DoctorName)
-			_, _ = tx.Exec(logSQL, uuid.New().String(), batchID, rowNum, sourceJSON, pRow.Status, pRow.Message, "")
+			srcMap := map[string]string{
+				"hospital":  pRow.HospitalName,
+				"specialty": pRow.Specialization,
+				"doctor":    pRow.DoctorName,
+			}
+			srcBytes, _ := json.Marshal(srcMap)
+			_, _ = tx.Exec(logSQL, uuid.New().String(), batchID, rowNum, string(srcBytes), pRow.Status, pRow.Message, "")
 		}
 
 		preview.Rows = append(preview.Rows, pRow)
@@ -577,16 +607,16 @@ func (s *ExcelService) ParseSecondaryUpload(r io.Reader, filename string, dryRun
 	preview.TotalRows = len(preview.Rows)
 
 	if !dryRun && tx != nil {
-		batchSQL := `
-			INSERT INTO import_batches 
-			(id, file_name, upload_type, uploader, total_rows, accepted_rows, created_rows, updated_rows, skipped_rows, invalid_rows, review_rows, status, summary_notes)
-			VALUES ($1, $2, 'specialization_doctor', 'admin', $3, $4, $5, 0, 0, $6, $7, 'completed', $8)
+		updateBatchSQL := `
+			UPDATE import_batches 
+			SET total_rows = $1, accepted_rows = $2, created_rows = $3, updated_rows = 0, invalid_rows = $4, review_rows = $5, status = 'completed', summary_notes = $6
+			WHERE id = $7
 		`
 		summaryNotes := fmt.Sprintf("Processed %d rows: %d valid associations, %d unassigned specialty reviews, %d not found/invalid",
 			preview.TotalRows, validCount, reviewCount, notFoundCount+invalidCount)
-		_, err := tx.Exec(batchSQL, batchID, filename, preview.TotalRows, validCount+reviewCount, validCount+reviewCount, notFoundCount+invalidCount, reviewCount, summaryNotes)
+		_, err := tx.Exec(updateBatchSQL, preview.TotalRows, validCount+reviewCount, validCount+reviewCount, notFoundCount+invalidCount, reviewCount, summaryNotes, batchID)
 		if err != nil {
-			return nil, "", fmt.Errorf("error saving import batch: %w", err)
+			return nil, "", fmt.Errorf("error updating import batch: %w", err)
 		}
 
 		if err := tx.Commit(); err != nil {
