@@ -1,0 +1,25 @@
+[Unit]
+Description=Pratham Hospitals Web Directory and Admin Portal
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/pratham-hospitals
+ExecStart=/opt/pratham-hospitals/pratham-hospitals
+Restart=always
+RestartSec=5s
+Environment=PORT=8085
+Environment=DB_HOST=localhost
+Environment=DB_PORT=5432
+Environment=DB_USER=pratham
+Environment=DB_PASSWORD=PrathamSecure2026!
+Environment=DB_NAME=pratham_hospitals
+Environment=DB_SSLMODE=disable
+
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
