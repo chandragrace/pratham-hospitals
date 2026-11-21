@@ -22,6 +22,156 @@ func NormalizeString(s string) string {
 	return strings.Join(fields, " ")
 }
 
+// buildSingleTermUniversalClause builds an SQL OR-clause matching a single search term across all 15 database fields
+func (s *DirectoryService) buildSingleTermUniversalClause(term string, startIdx int) (string, []interface{}, int) {
+	tClean := strings.TrimSpace(term)
+	if tClean == "" {
+		return "", nil, startIdx
+	}
+	tLower := strings.ToLower(tClean)
+	pattern := "%" + tClean + "%"
+
+	var orConditions []string
+	var args []interface{}
+	idx := startIdx
+
+	// 1. Hospital Name & Normalized Name
+	orConditions = append(orConditions, fmt.Sprintf("h.hospital_name ILIKE $%d", idx))
+	args = append(args, pattern)
+	idx++
+
+	orConditions = append(orConditions, fmt.Sprintf("h.normalized_name ILIKE $%d", idx))
+	args = append(args, pattern)
+	idx++
+
+	// 2. Hospital Address & 7. Pincode (street, locality, pincode embedded in address)
+	orConditions = append(orConditions, fmt.Sprintf("COALESCE(h.address, '') ILIKE $%d", idx))
+	args = append(args, pattern)
+	idx++
+
+	// 3. Location / Area / Locality & 4. City / Town
+	orConditions = append(orConditions, fmt.Sprintf("COALESCE(h.location, '') ILIKE $%d", idx))
+	args = append(args, pattern)
+	idx++
+
+	// 5. District
+	orConditions = append(orConditions, fmt.Sprintf("COALESCE(h.district, '') ILIKE $%d", idx))
+	args = append(args, pattern)
+	idx++
+
+	// 6. State
+	orConditions = append(orConditions, fmt.Sprintf("COALESCE(h.state, '') ILIKE $%d", idx))
+	args = append(args, pattern)
+	idx++
+
+	// 9. Hospital Category & 10. Hospital Classification (type: Pratham, Anchor, Network, Exclusion)
+	orConditions = append(orConditions, fmt.Sprintf("COALESCE(h.type, '') ILIKE $%d", idx))
+	args = append(args, pattern)
+	idx++
+
+	// Synonyms for Classification
+	if tLower == "anchor" || tLower == "neo" || tLower == "pratham neo" || tLower == "prathamneo" {
+		orConditions = append(orConditions, "(h.type ILIKE '%Anchor%' OR h.type ILIKE '%Neo%')")
+	} else if tLower == "exclusion" || tLower == "blocked" || tLower == "blacklisted" {
+		orConditions = append(orConditions, "(h.type ILIKE '%Exclusion%' OR h.type ILIKE '%Blocked%')")
+	} else if tLower == "pratham" {
+		orConditions = append(orConditions, "h.type ILIKE '%Pratham%'")
+	} else if tLower == "network" {
+		orConditions = append(orConditions, "h.type ILIKE '%Network%'")
+	}
+
+	// 8. Hospital Type: Government vs Private vs Trust vs Other
+	if tLower == "govt" || tLower == "government" || tLower == "gh" || tLower == "uphc" || tLower == "phc" {
+		orConditions = append(orConditions, "(h.hospital_name ILIKE '%govt%' OR h.hospital_name ILIKE '%government%' OR COALESCE(h.address, '') ILIKE '%govt%' OR COALESCE(h.address, '') ILIKE '%government%')")
+	} else if tLower == "private" || tLower == "pvt" {
+		orConditions = append(orConditions, "(h.hospital_name ILIKE '%pvt%' OR h.hospital_name ILIKE '%private%' OR (h.hospital_name NOT ILIKE '%govt%' AND h.hospital_name NOT ILIKE '%government%'))")
+	} else if tLower == "trust" {
+		orConditions = append(orConditions, "h.hospital_name ILIKE '%trust%'")
+	}
+
+	// 11. Medical Specialities & Clinical Descriptions
+	orConditions = append(orConditions, fmt.Sprintf(`EXISTS (
+		SELECT 1 FROM hospital_specializations hs 
+		JOIN specializations sp ON hs.specialization_id = sp.id 
+		WHERE hs.hospital_id = h.id 
+		  AND (sp.canonical_name ILIKE $%d OR sp.normalized_name ILIKE $%d OR COALESCE(hs.description, '') ILIKE $%d)
+	)`, idx, idx+1, idx+2))
+	args = append(args, pattern, pattern, pattern)
+	idx += 3
+
+	// Common Medical Speciality Abbreviations / Synonyms
+	switch {
+	case strings.HasPrefix(tLower, "ortho"):
+		orConditions = append(orConditions, `EXISTS (
+			SELECT 1 FROM hospital_specializations hs 
+			JOIN specializations sp ON hs.specialization_id = sp.id 
+			WHERE hs.hospital_id = h.id AND sp.canonical_name ILIKE '%ortho%'
+		)`)
+	case strings.HasPrefix(tLower, "cardio"):
+		orConditions = append(orConditions, `EXISTS (
+			SELECT 1 FROM hospital_specializations hs 
+			JOIN specializations sp ON hs.specialization_id = sp.id 
+			WHERE hs.hospital_id = h.id AND sp.canonical_name ILIKE '%cardio%'
+		)`)
+	case strings.HasPrefix(tLower, "neuro"):
+		orConditions = append(orConditions, `EXISTS (
+			SELECT 1 FROM hospital_specializations hs 
+			JOIN specializations sp ON hs.specialization_id = sp.id 
+			WHERE hs.hospital_id = h.id AND sp.canonical_name ILIKE '%neuro%'
+		)`)
+	case strings.HasPrefix(tLower, "onco"):
+		orConditions = append(orConditions, `EXISTS (
+			SELECT 1 FROM hospital_specializations hs 
+			JOIN specializations sp ON hs.specialization_id = sp.id 
+			WHERE hs.hospital_id = h.id AND sp.canonical_name ILIKE '%onco%'
+		)`)
+	case strings.HasPrefix(tLower, "nephro"):
+		orConditions = append(orConditions, `EXISTS (
+			SELECT 1 FROM hospital_specializations hs 
+			JOIN specializations sp ON hs.specialization_id = sp.id 
+			WHERE hs.hospital_id = h.id AND sp.canonical_name ILIKE '%nephro%'
+		)`)
+	case strings.HasPrefix(tLower, "ped") || strings.HasPrefix(tLower, "paed"):
+		orConditions = append(orConditions, `EXISTS (
+			SELECT 1 FROM hospital_specializations hs 
+			JOIN specializations sp ON hs.specialization_id = sp.id 
+			WHERE hs.hospital_id = h.id AND (sp.canonical_name ILIKE '%ped%' OR sp.canonical_name ILIKE '%paed%')
+		)`)
+	case strings.HasPrefix(tLower, "gyn") || tLower == "obgyn":
+		orConditions = append(orConditions, `EXISTS (
+			SELECT 1 FROM hospital_specializations hs 
+			JOIN specializations sp ON hs.specialization_id = sp.id 
+			WHERE hs.hospital_id = h.id AND (sp.canonical_name ILIKE '%gyn%' OR sp.canonical_name ILIKE '%obstet%')
+		)`)
+	case tLower == "ent":
+		orConditions = append(orConditions, `EXISTS (
+			SELECT 1 FROM hospital_specializations hs 
+			JOIN specializations sp ON hs.specialization_id = sp.id 
+			WHERE hs.hospital_id = h.id AND (sp.canonical_name ILIKE '%ent%' OR sp.canonical_name ILIKE '%ear%')
+		)`)
+	}
+
+	// 12. Doctor Name, 13. Doctor Specialisation & 14. Doctor Educational Qualifications (MBBS, MD, MS, DNB, DM, MCh, FRCS, etc.)
+	orConditions = append(orConditions, fmt.Sprintf(`EXISTS (
+		SELECT 1 FROM hospital_doctors hd 
+		JOIN doctors d ON hd.doctor_id = d.id 
+		WHERE hd.hospital_id = h.id 
+		  AND (d.display_name ILIKE $%d OR d.normalized_name ILIKE $%d OR hd.display_name ILIKE $%d OR COALESCE(d.qualifications, '') ILIKE $%d)
+	)`, idx, idx+1, idx+2, idx+3))
+	args = append(args, pattern, pattern, pattern, pattern)
+	idx += 4
+
+	// 15. Additional database fields: Custom Field Values
+	orConditions = append(orConditions, fmt.Sprintf(`EXISTS (
+		SELECT 1 FROM custom_field_values cfv 
+		WHERE cfv.entity_id = h.id AND cfv.value ILIKE $%d
+	)`, idx))
+	args = append(args, pattern)
+	idx++
+
+	return "(" + strings.Join(orConditions, " OR ") + ")", args, idx
+}
+
 // SearchHospitals performs multi-filter, search, sorting, and pagination
 func (s *DirectoryService) SearchHospitals(params models.SearchFilterParams) (*models.SearchResultWrapper, error) {
 	if params.Page <= 0 {
@@ -35,7 +185,7 @@ func (s *DirectoryService) SearchHospitals(params models.SearchFilterParams) (*m
 	args := []interface{}{}
 	argIdx := 1
 
-	// Blocked/Exclusion filter: default public search excludes Exclusion unless explicitly requested in types or IncludeBlocked is true
+	// Blocked/Exclusion filter: default public search excludes Exclusion unless explicitly requested in types or IncludeBlocked is true or query searches for exclusion
 	hasExclusionInTypes := false
 	for _, t := range params.Types {
 		if strings.EqualFold(strings.TrimSpace(t), "Exclusion") {
@@ -43,32 +193,34 @@ func (s *DirectoryService) SearchHospitals(params models.SearchFilterParams) (*m
 			break
 		}
 	}
-	if !params.IncludeBlocked && !hasExclusionInTypes {
+	if !params.IncludeBlocked && !hasExclusionInTypes && !strings.Contains(strings.ToLower(params.Q), "exclusion") {
 		whereClauses = append(whereClauses, "h.type != 'Exclusion'")
 	}
 
-	// Text query search: matches hospital name, location, district, state, doctor name or specialty name
+	// Universal Multi-Field Search Engine (+ operator supported)
 	if strings.TrimSpace(params.Q) != "" {
-		searchTerm := "%" + strings.TrimSpace(params.Q) + "%"
-		qClause := fmt.Sprintf(`(
-			h.hospital_name ILIKE $%d 
-			OR COALESCE(h.location, '') ILIKE $%d 
-			OR COALESCE(h.district, '') ILIKE $%d 
-			OR COALESCE(h.state, '') ILIKE $%d
-			OR EXISTS (
-				SELECT 1 FROM hospital_specializations hs 
-				JOIN specializations sp ON hs.specialization_id = sp.id 
-				WHERE hs.hospital_id = h.id AND sp.canonical_name ILIKE $%d
-			)
-			OR EXISTS (
-				SELECT 1 FROM hospital_doctors hd 
-				JOIN doctors d ON hd.doctor_id = d.id 
-				WHERE hd.hospital_id = h.id AND d.display_name ILIKE $%d
-			)
-		)`, argIdx, argIdx, argIdx, argIdx, argIdx, argIdx)
-		whereClauses = append(whereClauses, qClause)
-		args = append(args, searchTerm)
-		argIdx++
+		rawQ := strings.TrimSpace(params.Q)
+		var terms []string
+		if strings.Contains(rawQ, "+") {
+			parts := strings.Split(rawQ, "+")
+			for _, part := range parts {
+				trimmed := strings.TrimSpace(part)
+				if trimmed != "" {
+					terms = append(terms, trimmed)
+				}
+			}
+		} else {
+			terms = []string{rawQ}
+		}
+
+		for _, term := range terms {
+			clause, termArgs, nextIdx := s.buildSingleTermUniversalClause(term, argIdx)
+			if clause != "" {
+				whereClauses = append(whereClauses, clause)
+				args = append(args, termArgs...)
+				argIdx = nextIdx
+			}
+		}
 	}
 
 	// State filter

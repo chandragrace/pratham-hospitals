@@ -8,7 +8,7 @@
     <form action="/" method="GET" class="search-box-card">
       <div class="search-input-wrapper">
         <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" name="q" id="global-search-input" class="search-input" placeholder="Search hospital name, area (e.g. Kilpauk, Adyar), doctor or specialty..." value="{{ .Params.Q }}" autocomplete="off">
+        <input type="text" name="q" id="global-search-input" class="search-input" placeholder="Universal Search... Use + to combine (e.g. Apollo + Chennai, Govt + Ariyalur, MD + Cardiology)" value="{{ .Params.Q }}" autocomplete="off" aria-label="Universal Hospital and Specialist Search">
       </div>
       <!-- Preserve active filters on direct search -->
       {{ if .Params.State }}<input type="hidden" name="state" value="{{ .Params.State }}">{{ end }}
@@ -16,10 +16,22 @@
       {{ if .Params.Location }}<input type="hidden" name="location" value="{{ .Params.Location }}">{{ end }}
       {{ if .Params.Specialization }}<input type="hidden" name="specialization" value="{{ .Params.Specialization }}">{{ end }}
       {{ range .Params.Types }}<input type="hidden" name="type" value="{{ . }}">{{ end }}
-      <button type="submit" class="search-btn">
+      <button type="submit" class="search-btn" aria-label="Search">
         <span>Search</span>
       </button>
     </form>
+
+    <!-- Universal Search + Operator Hints Bar -->
+    <div class="search-hints-bar">
+      <span class="hint-label">Universal Search Examples (Click to search):</span>
+      <button type="button" class="search-hint-chip" onclick="applySearchExample('Apollo + Chennai')">Apollo + Chennai</button>
+      <button type="button" class="search-hint-chip" onclick="applySearchExample('Govt + Ariyalur')">Govt + Ariyalur</button>
+      <button type="button" class="search-hint-chip" onclick="applySearchExample('Private + Chennai')">Private + Chennai</button>
+      <button type="button" class="search-hint-chip" onclick="applySearchExample('Cardiology + Coimbatore')">Cardiology + Coimbatore</button>
+      <button type="button" class="search-hint-chip" onclick="applySearchExample('Pratham + Madurai')">Pratham + Madurai</button>
+      <button type="button" class="search-hint-chip" onclick="applySearchExample('Anchor + Chennai')">Anchor + Chennai</button>
+      <button type="button" class="search-hint-chip" onclick="applySearchExample('MD + Cardiology + Chennai')">MD + Cardiology + Chennai</button>
+    </div>
 
     <!-- Key Metrics Stats -->
     <div class="stats-banner">
@@ -49,10 +61,24 @@
 
 <!-- Main Results & Multi-filter Layout -->
 <div class="main-container">
+  <!-- Mobile Filter Toggle Bar (Visible on tablets/mobile < 900px) -->
+  <div class="mobile-filter-bar">
+    <button type="button" class="btn btn-secondary mobile-filter-btn" onclick="toggleMobileFilters()" aria-expanded="false" aria-controls="filter-sidebar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      <span>Filter & Refine</span>
+      {{ if or .Params.State .Params.District .Params.Location .Params.Specialization .Params.Doctor (gt (len .Params.Types) 0) }}
+        <span class="badge badge-pratham" style="margin-left: 0.35rem; font-size: 0.75rem;">Active</span>
+      {{ end }}
+    </button>
+    {{ if or .Params.State .Params.District .Params.Location .Params.Specialization .Params.Doctor (gt (len .Params.Types) 0) .Params.Q }}
+      <a href="/" class="clear-all-link" style="font-weight: 700;">Reset Filters</a>
+    {{ end }}
+  </div>
+
   <div class="layout-sidebar-main">
     
     <!-- Left Filter Sidebar -->
-    <aside class="filter-card">
+    <aside id="filter-sidebar" class="filter-card {{ if or .Params.State .Params.District .Params.Location .Params.Specialization .Params.Doctor (gt (len .Params.Types) 0) }}mobile-open{{ end }}">
       <div class="filter-header">
         <div class="filter-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
@@ -316,6 +342,24 @@ function updateQueryString(key, val) {
   const url = new URL(window.location.href);
   url.searchParams.set(key, val);
   return url.toString();
+}
+
+function toggleMobileFilters() {
+  const sidebar = document.getElementById('filter-sidebar');
+  if (sidebar) {
+    sidebar.classList.toggle('mobile-open');
+    const isNowOpen = sidebar.classList.contains('mobile-open');
+    const btn = document.querySelector('.mobile-filter-btn');
+    if (btn) btn.setAttribute('aria-expanded', isNowOpen);
+  }
+}
+
+function applySearchExample(query) {
+  const input = document.getElementById('global-search-input');
+  if (input) {
+    input.value = query;
+    input.form.submit();
+  }
 }
 </script>
 {{ end }}
