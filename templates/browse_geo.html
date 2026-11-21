@@ -7,54 +7,79 @@
   </nav>
 
   <div class="detail-card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--dark-navy); margin-bottom: 0.5rem;">
-        Hierarchical Healthcare Directory
-      </h1>
-      <a onclick="history.back(); return false;" href="/" class="btn btn-secondary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-        Back
-      </a>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--dark-navy); margin-bottom: 0.5rem;">
+          Hierarchical Healthcare Directory
+        </h1>
+        <p style="color: var(--neutral-muted);">
+          Drill down hierarchically: select a <strong>State</strong> to filter its <strong>Districts</strong> and <strong>Locations</strong>; or select a <strong>District</strong> to view its specific <strong>Locations</strong>.
+        </p>
+      </div>
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <button id="btn-reset-geo" onclick="resetGeoFilter()" class="btn btn-secondary" style="display: none;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          Reset Selection
+        </button>
+        <a onclick="history.back(); return false;" href="/" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </a>
+      </div>
     </div>
-    <p style="color: var(--neutral-muted);">
-      Drill down through regions, districts, and local neighborhoods across the Pratham healthcare network.
-    </p>
+
+    <!-- Active Filter Indicator Banner -->
+    <div id="geo-breadcrumb-bar" style="margin-top: 1rem; padding: 0.75rem 1rem; background: #F1F5F9; border-radius: var(--radius-sm); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <span style="font-weight: 700; color: var(--neutral-muted);">Hierarchy Drilldown:</span>
+        <span id="badge-selected-state" class="badge badge-pratham" style="font-size: 0.85rem;">All States</span>
+        <span style="color: var(--neutral-muted);">›</span>
+        <span id="badge-selected-district" class="badge badge-anchor" style="font-size: 0.85rem;">All Districts</span>
+        <span style="color: var(--neutral-muted);">›</span>
+        <span id="badge-selected-location" class="badge badge-network" style="font-size: 0.85rem;">All Locations</span>
+      </div>
+      <span style="font-size: 0.8rem; color: var(--neutral-muted);">Click any row to filter child levels</span>
+    </div>
   </div>
 
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-    <!-- States Card -->
+    <!-- 1. States Card -->
     <div class="table-card">
       <div style="background: var(--light-blue); padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-blue); display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="font-size: 1.1rem; color: var(--deep-blue); font-weight: 700;">States / Territories</h3>
-        <span class="badge badge-pratham">{{ len .States }} States</span>
+        <h3 style="font-size: 1.1rem; color: var(--deep-blue); font-weight: 700;">1. States / Territories</h3>
+        <span id="states-count-badge" class="badge badge-pratham">{{ len .States }} States</span>
       </div>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>State</th>
-            <th>Hospitals</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{ range .States }}
+      <div style="max-height: 520px; overflow-y: auto;">
+        <table class="data-table">
+          <thead>
             <tr>
-              <td style="font-weight: 700;">{{ .Name }}</td>
-              <td><span class="badge badge-pratham">{{ .HospitalCount }}</span></td>
-              <td><a href="/?state={{ .Name }}" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Explore</a></td>
+              <th>State</th>
+              <th>Hospitals</th>
+              <th>Action</th>
             </tr>
-          {{ end }}
-        </tbody>
-      </table>
+          </thead>
+          <tbody id="states-tbody">
+            {{ range .States }}
+              <tr class="geo-selectable-row state-row" data-state="{{ .Name }}" onclick="selectState('{{ .Name }}')">
+                <td style="font-weight: 700; cursor: pointer;">
+                  <span class="geo-name-link">{{ .Name }}</span>
+                </td>
+                <td><span class="badge badge-pratham">{{ .HospitalCount }}</span></td>
+                <td><a href="/?state={{ .Name }}" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="event.stopPropagation();">Explore</a></td>
+              </tr>
+            {{ end }}
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- Districts Card -->
+    <!-- 2. Districts Card -->
     <div class="table-card">
       <div style="background: #F0FDF4; padding: 1rem 1.25rem; border-bottom: 1px solid #BBF7D0; display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="font-size: 1.1rem; color: #15803D; font-weight: 700;">Districts</h3>
-        <span class="badge badge-pratham-neo">{{ len .Districts }} Districts</span>
+        <h3 style="font-size: 1.1rem; color: #15803D; font-weight: 700;">2. Districts</h3>
+        <span id="districts-count-badge" class="badge badge-anchor">{{ len .Districts }} Districts</span>
       </div>
-      <div style="max-height: 450px; overflow-y: auto;">
+      <div style="max-height: 520px; overflow-y: auto;">
         <table class="data-table">
           <thead>
             <tr>
@@ -64,13 +89,15 @@
               <th>Action</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="districts-tbody">
             {{ range .Districts }}
-              <tr>
-                <td style="font-weight: 700;">{{ .Name }}</td>
+              <tr class="geo-selectable-row district-row" data-state="{{ .ParentName }}" data-district="{{ .Name }}" onclick="selectDistrict('{{ .Name }}', '{{ .ParentName }}')">
+                <td style="font-weight: 700; cursor: pointer;">
+                  <span class="geo-name-link">{{ .Name }}</span>
+                </td>
                 <td style="color: var(--neutral-muted); font-size: 0.8rem;">{{ .ParentName }}</td>
-                <td><span class="badge badge-pratham-neo">{{ .HospitalCount }}</span></td>
-                <td><a href="/?district={{ .Name }}&state={{ .ParentName }}" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Explore</a></td>
+                <td><span class="badge badge-anchor">{{ .HospitalCount }}</span></td>
+                <td><a href="/?district={{ .Name }}&state={{ .ParentName }}" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="event.stopPropagation();">Explore</a></td>
               </tr>
             {{ end }}
           </tbody>
@@ -78,13 +105,13 @@
       </div>
     </div>
 
-    <!-- Locations Card -->
+    <!-- 3. Locations Card -->
     <div class="table-card">
       <div style="background: #EEF2FF; padding: 1rem 1.25rem; border-bottom: 1px solid #C7D2FE; display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="font-size: 1.1rem; color: #4338CA; font-weight: 700;">Locations & Neighborhoods</h3>
-        <span class="badge badge-network">{{ len .Locations }} Areas</span>
+        <h3 style="font-size: 1.1rem; color: #4338CA; font-weight: 700;">3. Locations & Neighborhoods</h3>
+        <span id="locations-count-badge" class="badge badge-network">{{ len .Locations }} Areas</span>
       </div>
-      <div style="max-height: 450px; overflow-y: auto;">
+      <div style="max-height: 520px; overflow-y: auto;">
         <table class="data-table">
           <thead>
             <tr>
@@ -94,9 +121,9 @@
               <th>Action</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="locations-tbody">
             {{ range .Locations }}
-              <tr>
+              <tr class="geo-selectable-row location-row" data-state="{{ .StateName }}" data-district="{{ .ParentName }}" data-location="{{ .Name }}">
                 <td style="font-weight: 700;">{{ .Name }}</td>
                 <td style="color: var(--neutral-muted); font-size: 0.8rem;">{{ .ParentName }}</td>
                 <td><span class="badge badge-network">{{ .HospitalCount }}</span></td>
@@ -109,5 +136,139 @@
     </div>
   </div>
 </div>
+
+<style>
+.geo-selectable-row {
+  cursor: pointer;
+  transition: background 0.15s ease, border-left 0.15s ease;
+}
+.geo-selectable-row:hover {
+  background: #F8FAFC !important;
+}
+.geo-selectable-row.selected-geo {
+  background: #EFF6FF !important;
+  border-left: 4px solid var(--primary-blue) !important;
+}
+.geo-selectable-row.selected-geo td {
+  color: var(--primary-blue) !important;
+  font-weight: 800 !important;
+}
+.geo-name-link {
+  color: inherit;
+  display: inline-block;
+}
+.geo-name-link:hover {
+  text-decoration: underline;
+}
+</style>
+
+<script>
+let selectedState = "";
+let selectedDistrict = "";
+
+function selectState(stateName) {
+  if (selectedState === stateName) {
+    // Toggle off
+    resetGeoFilter();
+    return;
+  }
+  selectedState = stateName;
+  selectedDistrict = "";
+
+  updateGeoUI();
+}
+
+function selectDistrict(distName, stateName) {
+  if (selectedDistrict === distName) {
+    // Toggle off district, keep state if present
+    selectedDistrict = "";
+  } else {
+    selectedDistrict = distName;
+    if (stateName) {
+      selectedState = stateName;
+    }
+  }
+  updateGeoUI();
+}
+
+function resetGeoFilter() {
+  selectedState = "";
+  selectedDistrict = "";
+  updateGeoUI();
+}
+
+function updateGeoUI() {
+  const resetBtn = document.getElementById("btn-reset-geo");
+  const stateBadge = document.getElementById("badge-selected-state");
+  const distBadge = document.getElementById("badge-selected-district");
+  const locBadge = document.getElementById("badge-selected-location");
+
+  if (selectedState || selectedDistrict) {
+    resetBtn.style.display = "inline-flex";
+  } else {
+    resetBtn.style.display = "none";
+  }
+
+  stateBadge.innerText = selectedState ? selectedState : "All States";
+  distBadge.innerText = selectedDistrict ? selectedDistrict : (selectedState ? "All in " + selectedState : "All Districts");
+  locBadge.innerText = selectedDistrict ? "All in " + selectedDistrict : (selectedState ? "All in " + selectedState : "All Locations");
+
+  // Highlight State rows
+  const stateRows = document.querySelectorAll(".state-row");
+  stateRows.forEach(row => {
+    if (selectedState && row.getAttribute("data-state") === selectedState) {
+      row.classList.add("selected-geo");
+    } else {
+      row.classList.remove("selected-geo");
+    }
+  });
+
+  // Filter & Highlight District rows
+  const distRows = document.querySelectorAll(".district-row");
+  let visibleDistCount = 0;
+  distRows.forEach(row => {
+    const rowState = row.getAttribute("data-state");
+    const rowDist = row.getAttribute("data-district");
+    let show = true;
+    if (selectedState && rowState !== selectedState) {
+      show = false;
+    }
+    if (show) {
+      row.style.display = "";
+      visibleDistCount++;
+    } else {
+      row.style.display = "none";
+    }
+
+    if (selectedDistrict && rowDist === selectedDistrict) {
+      row.classList.add("selected-geo");
+    } else {
+      row.classList.remove("selected-geo");
+    }
+  });
+  document.getElementById("districts-count-badge").innerText = visibleDistCount + (selectedState ? " in " + selectedState : " Districts");
+
+  // Filter Location rows
+  const locRows = document.querySelectorAll(".location-row");
+  let visibleLocCount = 0;
+  locRows.forEach(row => {
+    const rowState = row.getAttribute("data-state");
+    const rowDist = row.getAttribute("data-district");
+    let show = true;
+    if (selectedDistrict) {
+      if (rowDist !== selectedDistrict) show = false;
+    } else if (selectedState) {
+      if (rowState && rowState !== selectedState) show = false;
+    }
+    if (show) {
+      row.style.display = "";
+      visibleLocCount++;
+    } else {
+      row.style.display = "none";
+    }
+  });
+  document.getElementById("locations-count-badge").innerText = visibleLocCount + (selectedDistrict ? " in " + selectedDistrict : (selectedState ? " in " + selectedState : " Areas"));
+}
+</script>
 {{ end }}
 

@@ -35,8 +35,15 @@ func (s *DirectoryService) SearchHospitals(params models.SearchFilterParams) (*m
 	args := []interface{}{}
 	argIdx := 1
 
-	// Blocked filter: default public search excludes Blocked unless explicitly requested
-	if !params.IncludeBlocked {
+	// Blocked/Exclusion filter: default public search excludes Exclusion unless explicitly requested in types or IncludeBlocked is true
+	hasExclusionInTypes := false
+	for _, t := range params.Types {
+		if strings.EqualFold(strings.TrimSpace(t), "Exclusion") {
+			hasExclusionInTypes = true
+			break
+		}
+	}
+	if !params.IncludeBlocked && !hasExclusionInTypes {
 		whereClauses = append(whereClauses, "h.type != 'Exclusion'")
 	}
 
@@ -382,18 +389,18 @@ func (s *DirectoryService) GetGeographyHierarchy() ([]models.GeoCountItem, []mod
 	// Locations
 	locations := []models.GeoCountItem{}
 	locRows, err := s.db.Query(`
-		SELECT COALESCE(location, 'Unassigned'), COALESCE(district, ''), COUNT(*),
+		SELECT COALESCE(location, 'Unassigned'), COALESCE(district, ''), COALESCE(state, ''), COUNT(*),
 		       (SELECT COUNT(*) FROM hospital_doctors hd JOIN hospitals h2 ON hd.hospital_id = h2.id WHERE COALESCE(h2.location, 'Unassigned') = COALESCE(h.location, 'Unassigned'))
 		FROM hospitals h
 		WHERE h.status = 'active' AND h.type != 'Exclusion'
-		GROUP BY location, district
+		GROUP BY location, district, state
 		ORDER BY location ASC
 	`)
 	if err == nil {
 		defer locRows.Close()
 		for locRows.Next() {
 			var item models.GeoCountItem
-			if err := locRows.Scan(&item.Name, &item.ParentName, &item.HospitalCount, &item.DoctorCount); err == nil {
+			if err := locRows.Scan(&item.Name, &item.ParentName, &item.StateName, &item.HospitalCount, &item.DoctorCount); err == nil {
 				locations = append(locations, item)
 			}
 		}
@@ -446,8 +453,10 @@ func (s *DirectoryService) GetGlobalStats() (map[string]interface{}, error) {
 
 	stats["total_hospitals"] = totalHospitals
 	stats["pratham_count"] = prathamCount
-	stats["pratham_neo_count"] = anchorCount
+	stats["anchor_count"] = anchorCount
 	stats["network_count"] = networkCount
+	stats["exclusion_count"] = exclusionCount
+	stats["pratham_neo_count"] = anchorCount
 	stats["blocked_count"] = exclusionCount
 	stats["total_specializations"] = totalSpecializations
 	stats["total_doctors"] = totalDoctors

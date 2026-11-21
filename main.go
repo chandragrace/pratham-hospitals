@@ -119,6 +119,7 @@ func main() {
 	mux.HandleFunc("/admin/custom-fields/delete", handlers.RequireAdmin(adminH.CustomFieldDeleteHandler))
 	mux.HandleFunc("/admin/settings", handlers.RequireAdmin(adminH.SettingsHandler))
 	mux.HandleFunc("/admin/settings/save", handlers.RequireAdmin(adminH.SettingsHandler))
+	mux.HandleFunc("/admin/export/database", handlers.RequireAdmin(adminH.ExportDatabaseHandler))
 
 	// Admin Import routes
 	mux.HandleFunc("/admin/import/master", handlers.RequireAdmin(importH.ImportMasterHandler))

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"pratham-hospitals/models"
@@ -542,4 +543,19 @@ func (h *AdminHandler) SettingsHandler(w http.ResponseWriter, r *http.Request) {
 
 		http.Redirect(w, r, "/admin/settings?msg=Settings+saved+successfully", http.StatusFound)
 	}
+}
+
+// ExportDatabaseHandler exports the entire database as an Excel workbook (.xlsx)
+func (h *AdminHandler) ExportDatabaseHandler(w http.ResponseWriter, r *http.Request) {
+	excelService := services.NewExcelService(h.db)
+	file, err := excelService.ExportDatabaseExcel()
+	if err != nil {
+		http.Error(w, "Error generating database export: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	filename := fmt.Sprintf("pratham_hospitals_database_export_%s.xlsx", time.Now().Format("2006-01-02"))
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	_ = file.Write(w)
 }

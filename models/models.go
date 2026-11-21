@@ -178,6 +178,7 @@ type SearchResultWrapper struct {
 type GeoCountItem struct {
 	Name          string `json:"name"`
 	ParentName    string `json:"parent_name,omitempty"`
+	StateName     string `json:"state_name,omitempty"`
 	HospitalCount int    `json:"hospital_count"`
 	DoctorCount   int    `json:"doctor_count"`
 }

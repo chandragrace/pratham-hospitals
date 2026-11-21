@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
@@ -935,4 +936,115 @@ func isEmptyRow(row []string) bool {
 		}
 	}
 	return true
+}
+
+// ExportDatabaseExcel generates an all-inclusive Excel workbook of the entire directory
+func (s *ExcelService) ExportDatabaseExcel() (*excelize.File, error) {
+	f := excelize.NewFile()
+
+	// Header styles
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "#FFFFFF"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#1E3A8A"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+	})
+	headerStyle2, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "#FFFFFF"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#0D9488"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+	})
+
+	// -------------------------------------------------------------
+	// Sheet 1: Hospitals Master
+	// -------------------------------------------------------------
+	hospSheet := "Hospitals_Master"
+	f.SetSheetName("Sheet1", hospSheet)
+
+	hospHeaders := []string{"S.NO", "Hospital Name", "Category", "Status", "Address", "Location", "District", "State", "Pincode", "Phone", "Email", "Created At"}
+	for colIdx, h := range hospHeaders {
+		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 1)
+		f.SetCellValue(hospSheet, cell, h)
+	}
+	f.SetRowStyle(hospSheet, 1, 1, headerStyle)
+
+	hRows, err := s.db.Query(`
+		SELECT id, hospital_name, type, status, 
+		       COALESCE(address, ''), COALESCE(location, ''), COALESCE(district, ''), COALESCE(state, ''), 
+		       COALESCE(pincode, ''), COALESCE(phone, ''), COALESCE(email, ''), created_at
+		FROM hospitals
+		ORDER BY hospital_name ASC
+	`)
+	if err == nil {
+		defer hRows.Close()
+		rowIdx := 2
+		sno := 1
+		for hRows.Next() {
+			var id, name, hType, status, addr, loc, dist, state, pin, phone, email string
+			var createdAt time.Time
+			if err := hRows.Scan(&id, &name, &hType, &status, &addr, &loc, &dist, &state, &pin, &phone, &email, &createdAt); err == nil {
+				f.SetCellValue(hospSheet, fmt.Sprintf("A%d", rowIdx), sno)
+				f.SetCellValue(hospSheet, fmt.Sprintf("B%d", rowIdx), name)
+				f.SetCellValue(hospSheet, fmt.Sprintf("C%d", rowIdx), hType)
+				f.SetCellValue(hospSheet, fmt.Sprintf("D%d", rowIdx), status)
+				f.SetCellValue(hospSheet, fmt.Sprintf("E%d", rowIdx), addr)
+				f.SetCellValue(hospSheet, fmt.Sprintf("F%d", rowIdx), loc)
+				f.SetCellValue(hospSheet, fmt.Sprintf("G%d", rowIdx), dist)
+				f.SetCellValue(hospSheet, fmt.Sprintf("H%d", rowIdx), state)
+				f.SetCellValue(hospSheet, fmt.Sprintf("I%d", rowIdx), pin)
+				f.SetCellValue(hospSheet, fmt.Sprintf("J%d", rowIdx), phone)
+				f.SetCellValue(hospSheet, fmt.Sprintf("K%d", rowIdx), email)
+				f.SetCellValue(hospSheet, fmt.Sprintf("L%d", rowIdx), createdAt.Format("2006-01-02 15:04"))
+				rowIdx++
+				sno++
+			}
+		}
+	}
+
+	// -------------------------------------------------------------
+	// Sheet 2: Specializations & Doctors
+	// -------------------------------------------------------------
+	specSheet := "Specializations_and_Doctors"
+	f.NewSheet(specSheet)
+
+	secHeaders := []string{"S.NO", "Hospital Name", "Specialization", "Description", "Doctor Name"}
+	for colIdx, h := range secHeaders {
+		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 1)
+		f.SetCellValue(specSheet, cell, h)
+	}
+	f.SetRowStyle(specSheet, 1, 1, headerStyle2)
+
+	secRows, err := s.db.Query(`
+		SELECT 
+			h.hospital_name,
+			COALESCE(sp.canonical_name, ''),
+			COALESCE(hs.description, ''),
+			COALESCE(d.display_name, '')
+		FROM hospitals h
+		LEFT JOIN hospital_specializations hs ON h.id = hs.hospital_id
+		LEFT JOIN specializations sp ON hs.specialization_id = sp.id
+		LEFT JOIN doctor_specializations ds ON hs.id = ds.hospital_specialization_id
+		LEFT JOIN hospital_doctors hd ON ds.hospital_doctor_id = hd.id
+		LEFT JOIN doctors d ON hd.doctor_id = d.id
+		WHERE sp.canonical_name IS NOT NULL OR d.display_name IS NOT NULL
+		ORDER BY h.hospital_name ASC, sp.canonical_name ASC, d.display_name ASC
+	`)
+	if err == nil {
+		defer secRows.Close()
+		rowIdx := 2
+		sno := 1
+		for secRows.Next() {
+			var hospName, specName, desc, docName string
+			if err := secRows.Scan(&hospName, &specName, &desc, &docName); err == nil {
+				f.SetCellValue(specSheet, fmt.Sprintf("A%d", rowIdx), sno)
+				f.SetCellValue(specSheet, fmt.Sprintf("B%d", rowIdx), hospName)
+				f.SetCellValue(specSheet, fmt.Sprintf("C%d", rowIdx), specName)
+				f.SetCellValue(specSheet, fmt.Sprintf("D%d", rowIdx), desc)
+				f.SetCellValue(specSheet, fmt.Sprintf("E%d", rowIdx), docName)
+				rowIdx++
+				sno++
+			}
+		}
+	}
+
+	return f, nil
 }
