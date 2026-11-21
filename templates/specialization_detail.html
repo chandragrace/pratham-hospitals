@@ -16,8 +16,9 @@
           {{ if .Specialization.Description }}{{ .Specialization.Description }}{{ else }}Specialized Medical & Clinical Department{{ end }}
         </p>
       </div>
-      <div>
-        <a href="/" class="btn btn-secondary">Back to Directory</a>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="/browse/specializations" class="btn btn-secondary">← Back to Specialties</a>
+        <a href="/browse/specializations?tab=hospitals&specialization={{ .Specialization.CanonicalName }}" class="btn btn-primary">Find Hospitals</a>
       </div>
     </div>
 
@@ -33,52 +34,110 @@
     </div>
   </div>
 
+  <!-- Hospitals Section -->
   <div style="margin-top: 2rem;">
-    <h2 style="font-size: 1.35rem; font-weight: 700; color: var(--dark-navy); margin-bottom: 1rem;">
-      Hospitals Offering {{ .Specialization.CanonicalName }}
-    </h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+      <h2 style="font-size: 1.35rem; font-weight: 700; color: var(--dark-navy);">
+        Hospitals Offering {{ .Specialization.CanonicalName }} ({{ len .Hospitals }})
+      </h2>
+      <a href="/browse/specializations?tab=hospitals&specialization={{ .Specialization.CanonicalName }}" class="btn btn-secondary" style="font-size: 0.8rem;">
+        Filter & Search Hospitals →
+      </a>
+    </div>
 
     <div class="table-card">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Hospital Name</th>
-            <th>Location</th>
-            <th>District</th>
-            <th>State</th>
-            <th>Type</th>
-            <th>Department Details</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{ if eq (len .Hospitals) 0 }}
+      <div style="overflow-x: auto;">
+        <table class="data-table">
+          <thead>
             <tr>
-              <td colspan="6" style="text-align: center; padding: 2rem; color: var(--neutral-muted);">
-                No hospitals currently listed for this specialty.
-              </td>
+              <th>Hospital Name</th>
+              <th>Location</th>
+              <th>District</th>
+              <th>State</th>
+              <th>Classification</th>
+              <th style="text-align: right;">Action</th>
             </tr>
-          {{ else }}
-            {{ range .Hospitals }}
-              <tr class="clickable-row" data-href="/hospital/{{ .ID }}">
-                <td>
-                  <a href="/hospital/{{ .ID }}" style="font-weight: 700; color: var(--primary-blue);">
-                    {{ .HospitalName }}
-                  </a>
-                </td>
-                <td>{{ if .Location }}{{ .Location }}{{ else }}—{{ end }}</td>
-                <td>{{ if .District }}{{ .District }}{{ else }}—{{ end }}</td>
-                <td>{{ if .State }}{{ .State }}{{ else }}—{{ end }}</td>
-                <td><span class="badge badge-pratham">{{ .Type }}</span></td>
-                <td>
-                  <a href="/hospital/{{ .ID }}" class="btn btn-secondary" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;">View Department</a>
+          </thead>
+          <tbody>
+            {{ if eq (len .Hospitals) 0 }}
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--neutral-muted);">
+                  No hospitals currently listed for this specialty.
                 </td>
               </tr>
+            {{ else }}
+              {{ range .Hospitals }}
+                <tr class="clickable-row" data-href="/hospital/{{ .ID }}">
+                  <td>
+                    <a href="/hospital/{{ .ID }}" style="font-weight: 700; color: var(--primary-blue);">
+                      {{ .HospitalName }}
+                    </a>
+                  </td>
+                  <td>{{ if .Location }}{{ .Location }}{{ else }}—{{ end }}</td>
+                  <td>{{ if .District }}{{ .District }}{{ else }}—{{ end }}</td>
+                  <td>{{ if .State }}{{ .State }}{{ else }}—{{ end }}</td>
+                  <td><span class="badge badge-pratham">{{ .Type }}</span></td>
+                  <td style="text-align: right;">
+                    <a href="/hospital/{{ .ID }}" class="btn btn-secondary" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;">View Profile</a>
+                  </td>
+                </tr>
+              {{ end }}
             {{ end }}
-          {{ end }}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
+
+  <!-- Specialists / Doctors Section -->
+  {{ if .Doctors }}
+    <div style="margin-top: 2.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h2 style="font-size: 1.35rem; font-weight: 700; color: var(--dark-navy);">
+          Specialist Doctors in {{ .Specialization.CanonicalName }} ({{ len .Doctors }})
+        </h2>
+        <a href="/browse/specializations?tab=doctors&specialization={{ .Specialization.CanonicalName }}" class="btn btn-secondary" style="font-size: 0.8rem;">
+          Search & Filter Doctors →
+        </a>
+      </div>
+
+      <div class="table-card">
+        <div style="overflow-x: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Doctor Name</th>
+                <th>Qualifications</th>
+                <th>Practicing Hospital</th>
+                <th>Location</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{ range .Doctors }}
+                <tr>
+                  <td>
+                    <a href="/doctor/{{ .DoctorID }}" style="font-weight: 700; color: var(--primary-blue);">
+                      {{ .DisplayName }}
+                    </a>
+                  </td>
+                  <td>{{ if .Qualifications }}<span class="badge badge-pratham">{{ .Qualifications }}</span>{{ else }}—{{ end }}</td>
+                  <td>
+                    <a href="/hospital/{{ .HospitalID }}" style="color: var(--neutral-dark); font-weight: 600;">
+                      {{ .HospitalName }}
+                    </a>
+                  </td>
+                  <td>{{ if .Location }}{{ .Location }}{{ else }}—{{ end }}</td>
+                  <td style="text-align: right;">
+                    <a href="/doctor/{{ .DoctorID }}" class="btn btn-secondary" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;">Doctor Profile</a>
+                  </td>
+                </tr>
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {{ end }}
 </div>
 {{ end }}
-

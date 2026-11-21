@@ -230,7 +230,7 @@ func (h *PublicHandler) SpecializationDetailHandler(w http.ResponseWriter, r *ht
 
 	var spec models.Specialization
 	err := h.db.QueryRow(`
-		SELECT id, canonical_name, normalized_name, description
+		SELECT id, canonical_name, normalized_name, COALESCE(description, '')
 		FROM specializations
 		WHERE id::text = $1 OR normalized_name = $1
 	`, id).Scan(&spec.ID, &spec.CanonicalName, &spec.NormalizedName, &spec.Description)
@@ -259,6 +259,38 @@ func (h *PublicHandler) SpecializationDetailHandler(w http.ResponseWriter, r *ht
 	}
 	spec.HospitalCount = len(hospitals)
 
+	// Fetch doctors offering this specialty
+	type SpecDoctorView struct {
+		DoctorID       string
+		DisplayName    string
+		Qualifications string
+		HospitalID     string
+		HospitalName   string
+		Location       string
+		HospitalType   string
+	}
+	docRows, docErr := h.db.Query(`
+		SELECT DISTINCT d.id, d.display_name, COALESCE(d.qualifications, ''), h.id, h.hospital_name, COALESCE(h.location, ''), h.type
+		FROM doctor_specializations ds
+		JOIN hospital_specializations hs ON ds.hospital_specialization_id = hs.id
+		JOIN hospital_doctors hd ON ds.hospital_doctor_id = hd.id
+		JOIN doctors d ON hd.doctor_id = d.id
+		JOIN hospitals h ON hd.hospital_id = h.id
+		WHERE hs.specialization_id = $1 AND h.status = 'active'
+		ORDER BY d.display_name ASC
+	`, spec.ID)
+	doctors := []SpecDoctorView{}
+	if docErr == nil {
+		defer docRows.Close()
+		for docRows.Next() {
+			var d SpecDoctorView
+			if err := docRows.Scan(&d.DoctorID, &d.DisplayName, &d.Qualifications, &d.HospitalID, &d.HospitalName, &d.Location, &d.HospitalType); err == nil {
+				doctors = append(doctors, d)
+			}
+		}
+	}
+	spec.DoctorCount = len(doctors)
+
 	isAdmin, adminUser := CheckAdminSession(r)
 
 	data := struct {
@@ -268,13 +300,15 @@ func (h *PublicHandler) SpecializationDetailHandler(w http.ResponseWriter, r *ht
 		AdminUser      string
 		Specialization models.Specialization
 		Hospitals      []models.Hospital
+		Doctors        []SpecDoctorView
 	}{
-		Title:          spec.CanonicalName + " Hospitals",
+		Title:          spec.CanonicalName + " - Medical Specialty Directory",
 		ActiveNav:      "spec",
 		IsAdmin:        isAdmin,
 		AdminUser:      adminUser,
 		Specialization: spec,
 		Hospitals:      hospitals,
+		Doctors:        doctors,
 	}
 
 	t, ok := h.tmpl["specialization_detail"]
@@ -405,3 +439,160 @@ func (h *PublicHandler) BrowseGeoHandler(w http.ResponseWriter, r *http.Request)
 		log.Printf("Template render error: %v", err)
 	}
 }
+
+// SpecialtiesPageData holds view model for browse_specializations.html
+type SpecialtiesPageData struct {
+	Title           string
+	ActiveNav       string
+	IsAdmin         bool
+	AdminUser       string
+	Result          *models.SpecialtySearchResult
+	Params          models.SpecialtySearchParams
+	SpecialtiesList []models.Specialization
+	States          []models.GeoCountItem
+	Districts       []models.GeoCountItem
+	Locations       []models.GeoCountItem
+	Qualifications  []string
+	PageNumbers     []int
+}
+
+func (d SpecialtiesPageData) HasSpecialty(name string) bool {
+	for _, s := range d.Params.Specialties {
+		if strings.EqualFold(s, name) {
+			return true
+		}
+	}
+	return false
+}
+
+func (d SpecialtiesPageData) HasType(t string) bool {
+	for _, cur := range d.Params.Types {
+		if strings.EqualFold(cur, t) {
+			return true
+		}
+	}
+	return false
+}
+
+// BrowseSpecialtiesHandler renders the upgraded Medical Specialties Search & Directory
+func (h *PublicHandler) BrowseSpecialtiesHandler(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	tab := strings.TrimSpace(r.URL.Query().Get("tab"))
+	if tab == "" {
+		tab = "specialties"
+	}
+	view := strings.TrimSpace(r.URL.Query().Get("view"))
+	if view == "" {
+		view = "grid"
+	}
+	sortBy := strings.TrimSpace(r.URL.Query().Get("sort_by"))
+	if sortBy == "" {
+		sortBy = "name_asc"
+	}
+
+	specialties := r.URL.Query()["specialization"]
+	if len(specialties) == 0 {
+		specialties = r.URL.Query()["specialties"]
+	}
+	if singleSpec := strings.TrimSpace(r.URL.Query().Get("spec")); singleSpec != "" {
+		specialties = append(specialties, singleSpec)
+	}
+
+	doctor := strings.TrimSpace(r.URL.Query().Get("doctor"))
+	qualification := strings.TrimSpace(r.URL.Query().Get("qualification"))
+	hospital := strings.TrimSpace(r.URL.Query().Get("hospital"))
+	types := r.URL.Query()["type"]
+	state := strings.TrimSpace(r.URL.Query().Get("state"))
+	district := strings.TrimSpace(r.URL.Query().Get("district"))
+	location := strings.TrimSpace(r.URL.Query().Get("location"))
+	pincode := strings.TrimSpace(r.URL.Query().Get("pincode"))
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	if pageSize < 1 {
+		pageSize = 20
+	}
+
+	var showBlockedVal string
+	_ = h.db.QueryRow("SELECT value FROM system_settings WHERE key = 'show_blocked_in_public'").Scan(&showBlockedVal)
+	showBlocked := (showBlockedVal == "true")
+
+	isAdmin, adminUser := CheckAdminSession(r)
+	if isAdmin {
+		showBlocked = true
+	}
+
+	params := models.SpecialtySearchParams{
+		Q:              q,
+		Specialties:    specialties,
+		Doctor:         doctor,
+		Qualification:  qualification,
+		Hospital:       hospital,
+		Types:          types,
+		State:          state,
+		District:       district,
+		Location:       location,
+		Pincode:        pincode,
+		Tab:            tab,
+		View:           view,
+		SortBy:         sortBy,
+		Page:           page,
+		PageSize:       pageSize,
+		IncludeBlocked: showBlocked,
+	}
+
+	result, err := h.dirService.GetSpecialtiesDirectory(params)
+	if err != nil {
+		http.Error(w, "Specialties Directory Error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	allSpecs, _ := h.dirService.GetAllSpecializations()
+	states, districts, locations, _ := h.dirService.GetGeographyHierarchy()
+	commonQuals := []string{"MBBS", "MD", "MS", "DNB", "DM", "MCh", "FRCS", "MRCP", "Diploma", "BDS", "MDS", "Fellowship"}
+
+	pageNums := []int{}
+	startPage := result.Page - 3
+	if startPage < 1 {
+		startPage = 1
+	}
+	endPage := startPage + 6
+	if endPage > result.TotalPages {
+		endPage = result.TotalPages
+		startPage = endPage - 6
+		if startPage < 1 {
+			startPage = 1
+		}
+	}
+	for i := startPage; i <= endPage; i++ {
+		pageNums = append(pageNums, i)
+	}
+
+	data := SpecialtiesPageData{
+		Title:           "Explore Medical Specialties & Healthcare Experts",
+		ActiveNav:       "spec",
+		IsAdmin:         isAdmin,
+		AdminUser:       adminUser,
+		Result:          result,
+		Params:          params,
+		SpecialtiesList: allSpecs,
+		States:          states,
+		Districts:       districts,
+		Locations:       locations,
+		Qualifications:  commonQuals,
+		PageNumbers:     pageNums,
+	}
+
+	t, ok := h.tmpl["browse_specializations"]
+	if !ok {
+		http.Error(w, "Template not found: browse_specializations", http.StatusInternalServerError)
+		return
+	}
+	if err := t.ExecuteTemplate(w, "layout.html", &data); err != nil {
+		log.Printf("Template render error: %v", err)
+	}
+}
+

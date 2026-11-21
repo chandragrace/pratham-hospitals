@@ -183,3 +183,74 @@ type GeoCountItem struct {
 	DoctorCount   int    `json:"doctor_count"`
 }
 
+// SpecialtySearchParams encapsulates filter and search parameters for the Specialties directory
+type SpecialtySearchParams struct {
+	Q              string   `json:"q"`
+	Specialties    []string `json:"specialties"`
+	Doctor         string   `json:"doctor"`
+	Qualification  string   `json:"qualification"`
+	Hospital       string   `json:"hospital"`
+	Types          []string `json:"types"`           // Pratham, Anchor, Network, Exclusion
+	HospitalNature string   `json:"hospital_nature"` // govt, private, trust
+	State          string   `json:"state"`
+	District       string   `json:"district"`
+	Location       string   `json:"location"`
+	Pincode        string   `json:"pincode"`
+	Tab            string   `json:"tab"`             // "specialties", "hospitals", "doctors"
+	View           string   `json:"view"`            // "grid", "list", "table"
+	SortBy         string   `json:"sort_by"`         // "name_asc", "name_desc", "hosp_count", "doc_count"
+	Page           int      `json:"page"`
+	PageSize       int      `json:"page_size"`
+	IncludeBlocked bool     `json:"include_blocked"`
+}
+
+// SpecialtyDirectoryItem represents an enriched specialty in the directory
+type SpecialtyDirectoryItem struct {
+	ID              string   `json:"id"`
+	CanonicalName   string   `json:"canonical_name"`
+	NormalizedName  string   `json:"normalized_name"`
+	Description     string   `json:"description"`
+	HospitalCount   int      `json:"hospital_count"`
+	DoctorCount     int      `json:"doctor_count"`
+	SampleHospitals []string `json:"sample_hospitals,omitempty"`
+}
+
+// DoctorAffiliation represents a hospital where a doctor practices
+type DoctorAffiliation struct {
+	HospitalID   string `json:"hospital_id"`
+	HospitalName string `json:"hospital_name"`
+	Location     string `json:"location"`
+	District     string `json:"district"`
+	State        string `json:"state"`
+	Type         string `json:"type"`
+}
+
+// DoctorDirectoryItem represents an enriched doctor profile in the directory
+type DoctorDirectoryItem struct {
+	ID             string              `json:"id"`
+	DisplayName    string              `json:"display_name"`
+	NormalizedName string              `json:"normalized_name"`
+	Qualifications string              `json:"qualifications"`
+	Specialties    []string            `json:"specialties"`
+	Hospitals      []DoctorAffiliation `json:"hospitals"`
+	HospitalCount  int                 `json:"hospital_count"`
+}
+
+// SpecialtySearchResult wraps results for the Medical Specialties Directory
+type SpecialtySearchResult struct {
+	Tab              string                   `json:"tab"`
+	View             string                   `json:"view"`
+	TotalCount       int                      `json:"total_count"`
+	Page             int                      `json:"page"`
+	PageSize         int                      `json:"page_size"`
+	TotalPages       int                      `json:"total_pages"`
+	Specialties      []SpecialtyDirectoryItem `json:"specialties,omitempty"`
+	Hospitals        []Hospital               `json:"hospitals,omitempty"`
+	Doctors          []DoctorDirectoryItem    `json:"doctors,omitempty"`
+	TotalSpecialties int                      `json:"total_specialties"`
+	TotalHospitals   int                      `json:"total_hospitals"`
+	TotalDoctors     int                      `json:"total_doctors"`
+	TotalLocations   int                      `json:"total_locations"`
+}
+
+

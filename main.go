@@ -93,7 +93,11 @@ func main() {
 			http.Redirect(w, r, "/?location="+locName, http.StatusFound)
 			return
 		}
-		if r.URL.Path == "/browse/states" || r.URL.Path == "/browse/geo" || r.URL.Path == "/browse/geography" || r.URL.Path == "/browse/specializations" {
+		if r.URL.Path == "/browse/specializations" {
+			publicH.BrowseSpecialtiesHandler(w, r)
+			return
+		}
+		if r.URL.Path == "/browse/states" || r.URL.Path == "/browse/geo" || r.URL.Path == "/browse/geography" {
 			publicH.BrowseGeoHandler(w, r)
 			return
 		}
@@ -184,6 +188,7 @@ func initTemplates() (map[string]*template.Template, error) {
 		"specialization_detail",
 		"doctor_detail",
 		"browse_geo",
+		"browse_specializations",
 		"admin_login",
 		"admin_dashboard",
 		"admin_import_master",

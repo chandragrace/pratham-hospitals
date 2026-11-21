@@ -1,0 +1,919 @@
+{{ define "content" }}
+<div class="main-container">
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb">
+    <a href="/">Directory</a>
+    <span class="breadcrumb-separator">/</span>
+    <span class="breadcrumb-current">Medical Specialties</span>
+  </nav>
+
+  <!-- Page Header & Dynamic Summary Statistics -->
+  <div class="hero-section" style="padding: 2rem 1.5rem 1.75rem; border-radius: var(--radius-lg); background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); margin-bottom: 2rem;">
+    <div style="text-align: center; max-width: 850px; margin: 0 auto;">
+      <h1 class="hero-title" style="font-size: 2.1rem; font-weight: 800; color: var(--dark-navy); margin-bottom: 0.5rem; letter-spacing: -0.02em;">
+        Explore Medical Specialties & Healthcare Experts
+      </h1>
+      <p class="hero-subtitle" style="font-size: 1.05rem; color: var(--neutral-muted); margin-bottom: 1.5rem;">
+        Discover verified healthcare centres, specialist doctors and medical services across our hospital network.
+      </p>
+
+      <!-- Dynamic Summary Statistics -->
+      <div class="stats-banner" style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem;">
+        <div class="stat-item" style="background: #FFFFFF; border: 1px solid var(--border-blue); border-radius: var(--radius-md); padding: 0.6rem 1.25rem; box-shadow: var(--shadow-sm);">
+          <span class="stat-number" style="color: var(--primary-blue); font-size: 1.5rem; font-weight: 800;">{{ .Result.TotalSpecialties }}</span>
+          <span class="stat-label" style="font-weight: 700; color: var(--neutral-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em;">Specialties</span>
+        </div>
+        <div class="stat-item" style="background: #FFFFFF; border: 1px solid #BBF7D0; border-radius: var(--radius-md); padding: 0.6rem 1.25rem; box-shadow: var(--shadow-sm);">
+          <span class="stat-number" style="color: #15803D; font-size: 1.5rem; font-weight: 800;">{{ .Result.TotalHospitals }}</span>
+          <span class="stat-label" style="font-weight: 700; color: var(--neutral-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em;">Hospitals</span>
+        </div>
+        <div class="stat-item" style="background: #FFFFFF; border: 1px solid #DDD6FE; border-radius: var(--radius-md); padding: 0.6rem 1.25rem; box-shadow: var(--shadow-sm);">
+          <span class="stat-number" style="color: #6D28D9; font-size: 1.5rem; font-weight: 800;">{{ .Result.TotalDoctors }}</span>
+          <span class="stat-label" style="font-weight: 700; color: var(--neutral-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em;">Specialist Doctors</span>
+        </div>
+        <div class="stat-item" style="background: #FFFFFF; border: 1px solid #FED7AA; border-radius: var(--radius-md); padding: 0.6rem 1.25rem; box-shadow: var(--shadow-sm);">
+          <span class="stat-number" style="color: #C2410C; font-size: 1.5rem; font-weight: 800;">{{ .Result.TotalLocations }}</span>
+          <span class="stat-label" style="font-weight: 700; color: var(--neutral-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em;">Locations Covered</span>
+        </div>
+      </div>
+
+      <!-- Universal Search Bar -->
+      <form method="GET" action="/browse/specializations" id="main-search-form">
+        <input type="hidden" name="tab" value="{{ .Result.Tab }}">
+        <input type="hidden" name="view" value="{{ .Result.View }}">
+        <input type="hidden" name="sort_by" value="{{ .Params.SortBy }}">
+        <input type="hidden" name="page_size" value="{{ .Params.PageSize }}">
+        {{ if .Params.State }}<input type="hidden" name="state" value="{{ .Params.State }}">{{ end }}
+        {{ if .Params.District }}<input type="hidden" name="district" value="{{ .Params.District }}">{{ end }}
+        {{ if .Params.Location }}<input type="hidden" name="location" value="{{ .Params.Location }}">{{ end }}
+        {{ if .Params.Qualification }}<input type="hidden" name="qualification" value="{{ .Params.Qualification }}">{{ end }}
+        {{ range .Params.Specialties }}<input type="hidden" name="specialization" value="{{ . }}">{{ end }}
+        {{ range .Params.Types }}<input type="hidden" name="type" value="{{ . }}">{{ end }}
+
+        <div class="search-box-card" style="box-shadow: 0 4px 14px 0 rgba(0,0,0,0.08); border: 2px solid var(--border-blue);">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input 
+              type="text" 
+              name="q" 
+              class="search-input" 
+              placeholder="Search speciality, doctor, hospital, location, district or qualification..." 
+              value="{{ .Params.Q }}"
+              autocomplete="off"
+            >
+          </div>
+          <button type="submit" class="search-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Search
+          </button>
+        </div>
+      </form>
+
+      <!-- Search Hint Suggestions -->
+      <div class="search-hints-bar" style="margin-top: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
+        <span style="font-size: 0.75rem; font-weight: 700; color: var(--neutral-muted); text-transform: uppercase;">Try searching:</span>
+        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Cardiology+%2B+Chennai" class="search-hint-chip">Cardiology + Chennai</a>
+        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Dr.+Kumar+%2B+Cardiology" class="search-hint-chip">Dr. Kumar + Cardiology</a>
+        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Apollo+%2B+Cardiology" class="search-hint-chip">Apollo + Cardiology</a>
+        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Government+%2B+Ariyalur+%2B+Cardiology" class="search-hint-chip">Government + Ariyalur + Cardiology</a>
+        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=MD+%2B+Cardiology+%2B+Chennai" class="search-hint-chip">MD + Cardiology + Chennai</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Filter Bar Toggle -->
+  <div class="mobile-filter-bar" style="margin-bottom: 1rem;">
+    <button type="button" class="btn btn-secondary mobile-filter-btn" id="mobile-filter-toggle" onclick="toggleMobileFilters()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+      Filter Specialities & Doctors
+    </button>
+  </div>
+
+  <!-- Main Grid Layout: Filter Sidebar + Content Area -->
+  <div class="layout-sidebar-main">
+    <!-- LEFT SIDEBAR: ADVANCED FILTER PANEL -->
+    <aside class="sidebar-filter-col">
+      <div class="filter-card" id="filter-sidebar-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+          <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--dark-navy); display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
+            Advanced Filters
+          </h3>
+          <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}" style="font-size: 0.8rem; font-weight: 600; color: var(--primary-blue);">Clear All</a>
+        </div>
+
+        <form method="GET" action="/browse/specializations" id="filter-form">
+          <input type="hidden" name="tab" value="{{ .Result.Tab }}">
+          <input type="hidden" name="view" value="{{ .Result.View }}">
+          <input type="hidden" name="sort_by" value="{{ .Params.SortBy }}">
+          <input type="hidden" name="page_size" value="{{ .Params.PageSize }}">
+          {{ if .Params.Q }}<input type="hidden" name="q" value="{{ .Params.Q }}">{{ end }}
+
+          <!-- 1. Medical Speciality Filter -->
+          <div class="filter-group">
+            <label class="filter-label" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Medical Speciality</span>
+              <span style="font-size: 0.75rem; color: var(--neutral-muted);">{{ len .SpecialtiesList }} available</span>
+            </label>
+            <input type="text" id="spec-quick-filter" placeholder="Quick filter specialty..." onkeyup="filterSpecialtyList()" class="filter-input" style="font-size: 0.8rem; padding: 0.4rem 0.6rem; margin-bottom: 0.5rem;">
+            <div id="spec-checkbox-list" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.5rem; background: #FFF;">
+              {{ $pageData := . }}
+              {{ range .SpecialtiesList }}
+                <label class="spec-chk-item" style="display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; padding: 0.25rem 0.2rem; cursor: pointer;">
+                  <span style="display: flex; align-items: center; gap: 0.4rem;">
+                    <input type="checkbox" name="specialization" value="{{ .CanonicalName }}" {{ if $pageData.HasSpecialty .CanonicalName }}checked{{ end }}>
+                    <span class="spec-chk-name">{{ .CanonicalName }}</span>
+                  </span>
+                  <span style="font-size: 0.75rem; color: var(--neutral-muted);">{{ .HospitalCount }}</span>
+                </label>
+              {{ end }}
+            </div>
+          </div>
+
+          <!-- 2. Doctor Filters -->
+          <div class="filter-group">
+            <label class="filter-label">Doctor Name</label>
+            <input type="text" name="doctor" value="{{ .Params.Doctor }}" placeholder="e.g. Dr. Kumar" class="filter-input">
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Doctor Qualification</label>
+            <select name="qualification" class="filter-select">
+              <option value="">All Qualifications</option>
+              {{ range .Qualifications }}
+                <option value="{{ . }}" {{ if eq $pageData.Params.Qualification . }}selected{{ end }}>{{ . }}</option>
+              {{ end }}
+            </select>
+          </div>
+
+          <!-- 3. Hospital Filters -->
+          <div class="filter-group">
+            <label class="filter-label">Hospital Name</label>
+            <input type="text" name="hospital" value="{{ .Params.Hospital }}" placeholder="e.g. Apollo, Kauvery" class="filter-input">
+          </div>
+
+          <!-- 4. Hospital Classification -->
+          <div class="filter-group">
+            <label class="filter-label">Hospital Classification</label>
+            <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem;">
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input type="checkbox" name="type" value="Pratham" {{ if .HasType "Pratham" }}checked{{ end }}>
+                <span class="badge badge-pratham" style="font-size: 0.75rem;">Pratham</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input type="checkbox" name="type" value="Anchor" {{ if or (.HasType "Anchor") (.HasType "Pratham Neo") }}checked{{ end }}>
+                <span class="badge badge-anchor" style="font-size: 0.75rem;">Anchor / Neo</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input type="checkbox" name="type" value="Network" {{ if .HasType "Network" }}checked{{ end }}>
+                <span class="badge badge-network" style="font-size: 0.75rem;">Network</span>
+              </label>
+              {{ if .IsAdmin }}
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                  <input type="checkbox" name="type" value="Exclusion" {{ if .HasType "Exclusion" }}checked{{ end }}>
+                  <span class="badge badge-exclusion" style="font-size: 0.75rem;">Exclusion</span>
+                </label>
+              {{ end }}
+            </div>
+          </div>
+
+          <!-- 5. Cascading Location Filters -->
+          <div class="filter-group">
+            <label class="filter-label">State</label>
+            <select name="state" id="filter-state-select" class="filter-select" onchange="onStateFilterChange(this.value)">
+              <option value="">All States</option>
+              {{ range .States }}
+                <option value="{{ .Name }}" {{ if eq $pageData.Params.State .Name }}selected{{ end }}>{{ .Name }} ({{ .HospitalCount }})</option>
+              {{ end }}
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">District</label>
+            <select name="district" id="filter-district-select" class="filter-select" onchange="onDistrictFilterChange(this.value)">
+              <option value="">All Districts</option>
+              {{ range .Districts }}
+                <option value="{{ .Name }}" data-state="{{ .ParentName }}" {{ if eq $pageData.Params.District .Name }}selected{{ end }}>{{ .Name }} ({{ .HospitalCount }})</option>
+              {{ end }}
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Area / Location</label>
+            <select name="location" id="filter-location-select" class="filter-select">
+              <option value="">All Locations</option>
+              {{ range .Locations }}
+                <option value="{{ .Name }}" data-district="{{ .ParentName }}" data-state="{{ .StateName }}" {{ if eq $pageData.Params.Location .Name }}selected{{ end }}>{{ .Name }} ({{ .HospitalCount }})</option>
+              {{ end }}
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Pincode</label>
+            <input type="text" name="pincode" value="{{ .Params.Pincode }}" placeholder="e.g. 600010" class="filter-input">
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1.25rem;">
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+              Apply Filters
+            </button>
+            <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}" class="btn btn-secondary" style="width: 100%; justify-content: center; text-align: center;">
+              Reset Filters
+            </a>
+          </div>
+        </form>
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN CONTENT: RESULT GROUPING TABS & VIEWS -->
+    <main class="main-content-col">
+      <!-- Controls Topbar: Tabs, View Switcher & Sorting -->
+      <div class="detail-card" style="padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <!-- Result Tabs (Specialities | Hospitals | Doctors) -->
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <a href="?tab=specialties&view={{ .Result.View }}&q={{ .Params.Q }}&state={{ .Params.State }}&district={{ .Params.District }}&location={{ .Params.Location }}&doctor={{ .Params.Doctor }}&qualification={{ .Params.Qualification }}&hospital={{ .Params.Hospital }}" 
+               class="btn {{ if eq .Result.Tab "specialties" }}btn-primary{{ else }}btn-secondary{{ end }}" style="padding: 0.45rem 0.9rem; font-size: 0.85rem; font-weight: 700;">
+              Specialities {{ if eq .Result.Tab "specialties" }}({{ .Result.TotalCount }}){{ end }}
+            </a>
+            <a href="?tab=hospitals&view={{ .Result.View }}&q={{ .Params.Q }}&state={{ .Params.State }}&district={{ .Params.District }}&location={{ .Params.Location }}&doctor={{ .Params.Doctor }}&qualification={{ .Params.Qualification }}&hospital={{ .Params.Hospital }}" 
+               class="btn {{ if eq .Result.Tab "hospitals" }}btn-primary{{ else }}btn-secondary{{ end }}" style="padding: 0.45rem 0.9rem; font-size: 0.85rem; font-weight: 700;">
+              Hospitals {{ if eq .Result.Tab "hospitals" }}({{ .Result.TotalCount }}){{ end }}
+            </a>
+            <a href="?tab=doctors&view={{ .Result.View }}&q={{ .Params.Q }}&state={{ .Params.State }}&district={{ .Params.District }}&location={{ .Params.Location }}&doctor={{ .Params.Doctor }}&qualification={{ .Params.Qualification }}&hospital={{ .Params.Hospital }}" 
+               class="btn {{ if eq .Result.Tab "doctors" }}btn-primary{{ else }}btn-secondary{{ end }}" style="padding: 0.45rem 0.9rem; font-size: 0.85rem; font-weight: 700;">
+              Doctors {{ if eq .Result.Tab "doctors" }}({{ .Result.TotalCount }}){{ end }}
+            </a>
+          </div>
+
+          <!-- Sort, Page Size, and Display Layout Selector -->
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <!-- Sort Selector -->
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+              <span style="font-size: 0.8rem; color: var(--neutral-muted); font-weight: 600;">Sort:</span>
+              <select onchange="updateSort(this.value)" class="filter-select" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; width: auto;">
+                <option value="name_asc" {{ if eq .Params.SortBy "name_asc" }}selected{{ end }}>Name (A-Z)</option>
+                <option value="name_desc" {{ if eq .Params.SortBy "name_desc" }}selected{{ end }}>Name (Z-A)</option>
+                <option value="hosp_count" {{ if eq .Params.SortBy "hosp_count" }}selected{{ end }}>Hospitals (High-Low)</option>
+                <option value="doc_count" {{ if eq .Params.SortBy "doc_count" }}selected{{ end }}>Doctors (High-Low)</option>
+              </select>
+            </div>
+
+            <!-- Page Size -->
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+              <span style="font-size: 0.8rem; color: var(--neutral-muted); font-weight: 600;">Show:</span>
+              <select onchange="updatePageSize(this.value)" class="filter-select" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; width: auto;">
+                <option value="10" {{ if eq .Params.PageSize 10 }}selected{{ end }}>10</option>
+                <option value="20" {{ if eq .Params.PageSize 20 }}selected{{ end }}>20</option>
+                <option value="25" {{ if eq .Params.PageSize 25 }}selected{{ end }}>25</option>
+                <option value="50" {{ if eq .Params.PageSize 50 }}selected{{ end }}>50</option>
+                <option value="100" {{ if eq .Params.PageSize 100 }}selected{{ end }}>100</option>
+              </select>
+            </div>
+
+            <!-- View Switcher Icons (Grid / List / Table) -->
+            <div style="display: flex; border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow: hidden;">
+              <!-- Grid View -->
+              <a href="javascript:switchView('grid')" title="Grid View" 
+                 style="padding: 0.35rem 0.6rem; display: flex; align-items: center; background: {{ if eq .Result.View "grid" }}var(--primary-blue){{ else }}#FFFFFF{{ end }}; color: {{ if eq .Result.View "grid" }}#FFF{{ else }}var(--neutral-muted){{ end }};">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              </a>
+              <!-- List View -->
+              <a href="javascript:switchView('list')" title="List View" 
+                 style="padding: 0.35rem 0.6rem; display: flex; align-items: center; background: {{ if eq .Result.View "list" }}var(--primary-blue){{ else }}#FFFFFF{{ end }}; color: {{ if eq .Result.View "list" }}#FFF{{ else }}var(--neutral-muted){{ end }};">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              </a>
+              <!-- Table View -->
+              <a href="javascript:switchView('table')" title="Table View" 
+                 style="padding: 0.35rem 0.6rem; display: flex; align-items: center; background: {{ if eq .Result.View "table" }}var(--primary-blue){{ else }}#FFFFFF{{ end }}; color: {{ if eq .Result.View "table" }}#FFF{{ else }}var(--neutral-muted){{ end }};">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Filters Indicator Chips -->
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px dashed var(--border-color); font-size: 0.82rem;">
+          <span style="font-weight: 700; color: var(--neutral-muted);">Active Filters:</span>
+          {{ if .Params.Q }}
+            <span class="badge badge-pratham" style="font-size: 0.75rem;">Search: "{{ .Params.Q }}" <a href="javascript:removeParam('q')" style="color: inherit; margin-left: 4px; font-weight: bold;">✕</a></span>
+          {{ end }}
+          {{ range .Params.Specialties }}
+            <span class="badge badge-anchor" style="font-size: 0.75rem;">Specialty: {{ . }} <a href="javascript:removeArrayParam('specialization', '{{ . }}')" style="color: inherit; margin-left: 4px; font-weight: bold;">✕</a></span>
+          {{ end }}
+          {{ if .Params.Doctor }}
+            <span class="badge badge-network" style="font-size: 0.75rem;">Doctor: {{ .Params.Doctor }} <a href="javascript:removeParam('doctor')" style="color: inherit; margin-left: 4px; font-weight: bold;">✕</a></span>
+          {{ end }}
+          {{ if .Params.Qualification }}
+            <span class="badge badge-pratham" style="font-size: 0.75rem;">Degree: {{ .Params.Qualification }} <a href="javascript:removeParam('qualification')" style="color: inherit; margin-left: 4px; font-weight: bold;">✕</a></span>
+          {{ end }}
+          {{ if .Params.Hospital }}
+            <span class="badge badge-anchor" style="font-size: 0.75rem;">Hospital: {{ .Params.Hospital }} <a href="javascript:removeParam('hospital')" style="color: inherit; margin-left: 4px; font-weight: bold;">✕</a></span>
+          {{ end }}
+          {{ range .Params.Types }}
+            <span class="badge badge-pratham" style="font-size: 0.75rem;">Type: {{ . }} <a href="javascript:removeArrayParam('type', '{{ . }}')" style="color: inherit; margin-left: 4px; font-weight: bold;">✕</a></span>
+          {{ end }}
+          {{ if .Params.State }}
+            <span class="badge badge-anchor" style="font-size: 0.75rem;">State: {{ .Params.State }} <a href="javascript:removeParam('state')" style="color: inherit; margin-left: 4px; font-weight: bold;">✕</a></span>
+          {{ end }}
+          {{ if .Params.District }}
+            <span class="badge badge-network" style="font-size: 0.75rem;">District: {{ .Params.District }} <a href="javascript:removeParam('district')" style="color: inherit; margin-left: 4px; font-weight: bold;">✕</a></span>
+          {{ end }}
+          {{ if .Params.Location }}
+            <span class="badge badge-network" style="font-size: 0.75rem;">Location: {{ .Params.Location }} <a href="javascript:removeParam('location')" style="color: inherit; margin-left: 4px; font-weight: bold;">✕</a></span>
+          {{ end }}
+          {{ if .Params.Pincode }}
+            <span class="badge badge-pratham" style="font-size: 0.75rem;">Pincode: {{ .Params.Pincode }} <a href="javascript:removeParam('pincode')" style="color: inherit; margin-left: 4px; font-weight: bold;">✕</a></span>
+          {{ end }}
+          {{ if and (not .Params.Q) (not .Params.Specialties) (not .Params.Doctor) (not .Params.Qualification) (not .Params.Hospital) (not .Params.Types) (not .Params.State) (not .Params.District) (not .Params.Location) (not .Params.Pincode) }}
+            <span style="color: var(--neutral-muted); font-style: italic;">None (showing all database records)</span>
+          {{ end }}
+        </div>
+      </div>
+
+      <!-- RESULTS SECTION BASED ON TAB & VIEW -->
+
+      <!-- TAB 1: SPECIALTIES VIEW -->
+      {{ if eq .Result.Tab "specialties" }}
+        {{ if eq (len .Result.Specialties) 0 }}
+          <div class="detail-card" style="text-align: center; padding: 3rem 1.5rem;">
+            <p style="font-size: 1.15rem; color: var(--neutral-muted); margin-bottom: 1rem;">No medical specialties matched your search & filter criteria.</p>
+            <a href="/browse/specializations?tab=specialties" class="btn btn-primary">Clear Filters & View All</a>
+          </div>
+        {{ else }}
+          <!-- Grid View for Specialties -->
+          {{ if eq .Result.View "grid" }}
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;">
+              {{ range .Result.Specialties }}
+                <div class="detail-card" style="display: flex; flex-direction: column; justify-content: space-between; padding: 1.25rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); transition: transform 0.15s ease, box-shadow 0.15s ease;">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem;">
+                      <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--dark-navy);">
+                        <a href="/specialization/{{ .ID }}" style="color: var(--primary-blue);">{{ .CanonicalName }}</a>
+                      </h3>
+                      <span class="badge badge-pratham" style="font-size: 0.75rem;">Specialty</span>
+                    </div>
+
+                    <p style="font-size: 0.85rem; color: var(--neutral-muted); margin-bottom: 1rem; line-height: 1.4;">
+                      {{ if .Description }}{{ .Description }}{{ else }}Comprehensive clinical consultations, inpatient care & advanced procedures.{{ end }}
+                    </p>
+
+                    <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+                      <div style="flex: 1; background: var(--light-blue); padding: 0.5rem; border-radius: var(--radius-sm); text-align: center;">
+                        <span style="display: block; font-size: 1.15rem; font-weight: 800; color: var(--primary-blue);">{{ .HospitalCount }}</span>
+                        <span style="font-size: 0.7rem; font-weight: 700; color: var(--neutral-muted); text-transform: uppercase;">Hospitals</span>
+                      </div>
+                      <div style="flex: 1; background: #F5F3FF; padding: 0.5rem; border-radius: var(--radius-sm); text-align: center;">
+                        <span style="display: block; font-size: 1.15rem; font-weight: 800; color: #6D28D9;">{{ .DoctorCount }}</span>
+                        <span style="font-size: 0.7rem; font-weight: 700; color: var(--neutral-muted); text-transform: uppercase;">Doctors</span>
+                      </div>
+                    </div>
+
+                    {{ if .SampleHospitals }}
+                      <div style="margin-bottom: 1rem; font-size: 0.78rem; color: var(--neutral-muted);">
+                        <strong style="color: var(--neutral-dark);">Key Centers:</strong>
+                        <div style="margin-top: 0.25rem;">
+                          {{ range .SampleHospitals }}
+                            <span style="display: inline-block; background: #F1F5F9; padding: 2px 6px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px;">{{ . }}</span>
+                          {{ end }}
+                        </div>
+                      </div>
+                    {{ end }}
+                  </div>
+
+                  <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+                    <a href="/browse/specializations?tab=hospitals&specialization={{ .CanonicalName }}" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">
+                      View Hospitals ({{ .HospitalCount }})
+                    </a>
+                    <a href="/specialization/{{ .ID }}" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">
+                      Explore Details →
+                    </a>
+                  </div>
+                </div>
+              {{ end }}
+            </div>
+          {{ end }}
+
+          <!-- List View for Specialties -->
+          {{ if eq .Result.View "list" }}
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              {{ range .Result.Specialties }}
+                <div class="detail-card" style="padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                  <div style="max-width: 650px;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                      <h3 style="font-size: 1.2rem; font-weight: 700;">
+                        <a href="/specialization/{{ .ID }}" style="color: var(--primary-blue);">{{ .CanonicalName }}</a>
+                      </h3>
+                      <span class="badge badge-pratham" style="font-size: 0.75rem;">Verified Specialty</span>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--neutral-muted); margin-bottom: 0.5rem;">
+                      {{ if .Description }}{{ .Description }}{{ else }}Comprehensive clinical consultations, inpatient care & advanced procedures across network.{{ end }}
+                    </p>
+                    <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: var(--neutral-dark);">
+                      <span>🏥 <strong>{{ .HospitalCount }}</strong> Accredited Hospitals</span>
+                      <span>👨‍⚕️ <strong>{{ .DoctorCount }}</strong> Specialist Doctors</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <a href="/browse/specializations?tab=hospitals&specialization={{ .CanonicalName }}" class="btn btn-secondary" style="font-size: 0.8rem;">View Hospitals</a>
+                    <a href="/specialization/{{ .ID }}" class="btn btn-primary" style="font-size: 0.8rem;">Explore Details</a>
+                  </div>
+                </div>
+              {{ end }}
+            </div>
+          {{ end }}
+
+          <!-- Table View for Specialties -->
+          {{ if eq .Result.View "table" }}
+            <div class="table-card">
+              <div style="overflow-x: auto;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Speciality Name</th>
+                      <th>Description</th>
+                      <th style="text-align: center;">Hospitals</th>
+                      <th style="text-align: center;">Doctors</th>
+                      <th>Key Centers</th>
+                      <th style="text-align: right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {{ range .Result.Specialties }}
+                      <tr>
+                        <td>
+                          <a href="/specialization/{{ .ID }}" style="font-weight: 700; color: var(--primary-blue);">{{ .CanonicalName }}</a>
+                        </td>
+                        <td style="font-size: 0.82rem; color: var(--neutral-muted); max-width: 320px;">
+                          {{ if .Description }}{{ .Description }}{{ else }}Clinical care & specialized interventions{{ end }}
+                        </td>
+                        <td style="text-align: center;">
+                          <a href="/browse/specializations?tab=hospitals&specialization={{ .CanonicalName }}" class="badge badge-pratham" style="font-size: 0.8rem;">{{ .HospitalCount }}</a>
+                        </td>
+                        <td style="text-align: center;">
+                          <a href="/browse/specializations?tab=doctors&specialization={{ .CanonicalName }}" class="badge badge-anchor" style="font-size: 0.8rem;">{{ .DoctorCount }}</a>
+                        </td>
+                        <td style="font-size: 0.78rem; color: var(--neutral-muted);">
+                          {{ range .SampleHospitals }}<span style="display: inline-block; background: #F1F5F9; padding: 2px 4px; border-radius: 3px; margin: 1px;">{{ . }}</span> {{ end }}
+                        </td>
+                        <td style="text-align: right;">
+                          <a href="/specialization/{{ .ID }}" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Explore</a>
+                        </td>
+                      </tr>
+                    {{ end }}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+
+      <!-- TAB 2: HOSPITALS VIEW -->
+      {{ if eq .Result.Tab "hospitals" }}
+        {{ if eq (len .Result.Hospitals) 0 }}
+          <div class="detail-card" style="text-align: center; padding: 3rem 1.5rem;">
+            <p style="font-size: 1.15rem; color: var(--neutral-muted); margin-bottom: 1rem;">No hospitals found matching your criteria.</p>
+            <a href="/browse/specializations?tab=hospitals" class="btn btn-primary">Clear Filters & View All Hospitals</a>
+          </div>
+        {{ else }}
+          <!-- Grid View for Hospitals -->
+          {{ if eq .Result.View "grid" }}
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;">
+              {{ range .Result.Hospitals }}
+                <div class="detail-card" style="display: flex; flex-direction: column; justify-content: space-between; padding: 1.25rem; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem;">
+                      <h3 style="font-size: 1.1rem; font-weight: 700; line-height: 1.3;">
+                        <a href="/hospital/{{ .ID }}" style="color: var(--primary-blue);">{{ .HospitalName }}</a>
+                      </h3>
+                      {{ if eq .Type "Pratham" }}
+                        <span class="badge badge-pratham">Pratham</span>
+                      {{ else if eq .Type "Anchor" }}
+                        <span class="badge badge-anchor">Anchor</span>
+                      {{ else if eq .Type "Network" }}
+                        <span class="badge badge-network">Network</span>
+                      {{ else }}
+                        <span class="badge badge-exclusion">{{ .Type }}</span>
+                      {{ end }}
+                    </div>
+
+                    <div style="font-size: 0.82rem; color: var(--neutral-muted); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <span>{{ if .Location }}{{ .Location }}{{ end }}{{ if and .Location .District }}, {{ end }}{{ if .District }}{{ .District }}{{ end }}{{ if .State }} • {{ .State }}{{ end }}</span>
+                    </div>
+
+                    {{ if .Address }}
+                      <p style="font-size: 0.78rem; color: #475569; margin-bottom: 0.75rem; line-height: 1.35;">
+                        {{ .Address }}
+                      </p>
+                    {{ end }}
+
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.8rem;">
+                      <span class="badge badge-pratham" style="font-size: 0.75rem;">{{ .SpecialtyCount }} Specialties</span>
+                      <span class="badge badge-anchor" style="font-size: 0.75rem;">{{ .DoctorCount }} Doctors</span>
+                    </div>
+
+                    {{ if .SpecialtiesList }}
+                      <div style="font-size: 0.78rem; color: var(--neutral-muted); margin-bottom: 0.75rem;">
+                        <strong style="color: var(--neutral-dark);">Specialties:</strong>
+                        <div style="margin-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 4px;">
+                          {{ range .SpecialtiesList }}
+                            <a href="/browse/specializations?tab=hospitals&specialization={{ . }}" class="search-hint-chip" style="font-size: 0.72rem; padding: 2px 6px;">{{ . }}</a>
+                          {{ end }}
+                        </div>
+                      </div>
+                    {{ end }}
+                  </div>
+
+                  <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.5rem; text-align: right;">
+                    <a href="/hospital/{{ .ID }}" class="btn btn-primary" style="font-size: 0.78rem; padding: 0.35rem 0.75rem; width: 100%; justify-content: center;">
+                      View Hospital Details →
+                    </a>
+                  </div>
+                </div>
+              {{ end }}
+            </div>
+          {{ end }}
+
+          <!-- List View for Hospitals -->
+          {{ if eq .Result.View "list" }}
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              {{ range .Result.Hospitals }}
+                <div class="detail-card" style="padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                  <div style="max-width: 700px;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                      <h3 style="font-size: 1.15rem; font-weight: 700;">
+                        <a href="/hospital/{{ .ID }}" style="color: var(--primary-blue);">{{ .HospitalName }}</a>
+                      </h3>
+                      {{ if eq .Type "Pratham" }}<span class="badge badge-pratham">Pratham</span>
+                      {{ else if eq .Type "Anchor" }}<span class="badge badge-anchor">Anchor</span>
+                      {{ else if eq .Type "Network" }}<span class="badge badge-network">Network</span>
+                      {{ else }}<span class="badge badge-exclusion">{{ .Type }}</span>{{ end }}
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--neutral-muted); margin-bottom: 0.4rem;">
+                      📍 {{ if .Location }}{{ .Location }}, {{ end }}{{ if .District }}{{ .District }}, {{ end }}{{ if .State }}{{ .State }}{{ end }}
+                    </p>
+                    {{ if .Address }}<p style="font-size: 0.8rem; color: #475569; margin-bottom: 0.4rem;">{{ .Address }}</p>{{ end }}
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                      <span class="badge badge-pratham" style="font-size: 0.75rem;">{{ .SpecialtyCount }} Specialties</span>
+                      <span class="badge badge-anchor" style="font-size: 0.75rem;">{{ .DoctorCount }} Specialist Doctors</span>
+                    </div>
+                  </div>
+                  <div>
+                    <a href="/hospital/{{ .ID }}" class="btn btn-primary" style="font-size: 0.8rem;">View Hospital Details</a>
+                  </div>
+                </div>
+              {{ end }}
+            </div>
+          {{ end }}
+
+          <!-- Table View for Hospitals -->
+          {{ if eq .Result.View "table" }}
+            <div class="table-card">
+              <div style="overflow-x: auto;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Hospital Name</th>
+                      <th>Classification</th>
+                      <th>Location</th>
+                      <th>District</th>
+                      <th>State</th>
+                      <th style="text-align: center;">Specialties</th>
+                      <th style="text-align: center;">Doctors</th>
+                      <th style="text-align: right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {{ range .Result.Hospitals }}
+                      <tr>
+                        <td>
+                          <a href="/hospital/{{ .ID }}" style="font-weight: 700; color: var(--primary-blue);">{{ .HospitalName }}</a>
+                        </td>
+                        <td>
+                          {{ if eq .Type "Pratham" }}<span class="badge badge-pratham">Pratham</span>
+                          {{ else if eq .Type "Anchor" }}<span class="badge badge-anchor">Anchor</span>
+                          {{ else if eq .Type "Network" }}<span class="badge badge-network">Network</span>
+                          {{ else }}<span class="badge badge-exclusion">{{ .Type }}</span>{{ end }}
+                        </td>
+                        <td>{{ if .Location }}{{ .Location }}{{ else }}—{{ end }}</td>
+                        <td>{{ if .District }}{{ .District }}{{ else }}—{{ end }}</td>
+                        <td>{{ if .State }}{{ .State }}{{ else }}—{{ end }}</td>
+                        <td style="text-align: center;"><span class="badge badge-pratham">{{ .SpecialtyCount }}</span></td>
+                        <td style="text-align: center;"><span class="badge badge-anchor">{{ .DoctorCount }}</span></td>
+                        <td style="text-align: right;">
+                          <a href="/hospital/{{ .ID }}" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Details</a>
+                        </td>
+                      </tr>
+                    {{ end }}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+
+      <!-- TAB 3: DOCTORS VIEW -->
+      {{ if eq .Result.Tab "doctors" }}
+        {{ if eq (len .Result.Doctors) 0 }}
+          <div class="detail-card" style="text-align: center; padding: 3rem 1.5rem;">
+            <p style="font-size: 1.15rem; color: var(--neutral-muted); margin-bottom: 1rem;">No doctors found matching your criteria.</p>
+            <a href="/browse/specializations?tab=doctors" class="btn btn-primary">Clear Filters & View All Doctors</a>
+          </div>
+        {{ else }}
+          <!-- Grid View for Doctors -->
+          {{ if eq .Result.View "grid" }}
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;">
+              {{ range .Result.Doctors }}
+                <div class="detail-card" style="display: flex; flex-direction: column; justify-content: space-between; padding: 1.25rem; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                      <div style="width: 44px; height: 44px; border-radius: 50%; background: #EEF2FF; border: 1px solid #C7D2FE; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: var(--primary-blue);">
+                        👨‍⚕️
+                      </div>
+                      <div>
+                        <h3 style="font-size: 1.1rem; font-weight: 700;">
+                          <a href="/doctor/{{ .ID }}" style="color: var(--primary-blue);">{{ .DisplayName }}</a>
+                        </h3>
+                        {{ if .Qualifications }}
+                          <span class="badge badge-pratham" style="font-size: 0.72rem; padding: 2px 6px;">{{ .Qualifications }}</span>
+                        {{ end }}
+                      </div>
+                    </div>
+
+                    {{ if .Specialties }}
+                      <div style="margin-bottom: 0.75rem;">
+                        <strong style="font-size: 0.75rem; color: var(--neutral-muted); text-transform: uppercase;">Specialties:</strong>
+                        <div style="margin-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 4px;">
+                          {{ range .Specialties }}
+                            <a href="/browse/specializations?tab=doctors&specialization={{ . }}" class="search-hint-chip" style="font-size: 0.72rem; padding: 2px 6px;">{{ . }}</a>
+                          {{ end }}
+                        </div>
+                      </div>
+                    {{ end }}
+
+                    {{ if .Hospitals }}
+                      <div style="margin-bottom: 0.75rem; font-size: 0.8rem;">
+                        <strong style="font-size: 0.75rem; color: var(--neutral-muted); text-transform: uppercase;">Practicing At:</strong>
+                        <div style="margin-top: 0.25rem; display: flex; flex-direction: column; gap: 4px;">
+                          {{ range .Hospitals }}
+                            <div style="display: flex; justify-content: space-between; align-items: center; background: #F8FAFC; padding: 4px 6px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                              <a href="/hospital/{{ .HospitalID }}" style="font-weight: 600; font-size: 0.78rem; color: var(--neutral-dark);">{{ .HospitalName }}</a>
+                              <span style="font-size: 0.72rem; color: var(--neutral-muted);">{{ .Location }}</span>
+                            </div>
+                          {{ end }}
+                        </div>
+                      </div>
+                    {{ end }}
+                  </div>
+
+                  <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.5rem; text-align: right;">
+                    <a href="/doctor/{{ .ID }}" class="btn btn-secondary" style="font-size: 0.78rem; width: 100%; justify-content: center;">
+                      View Doctor Profile →
+                    </a>
+                  </div>
+                </div>
+              {{ end }}
+            </div>
+          {{ end }}
+
+          <!-- List View for Doctors -->
+          {{ if eq .Result.View "list" }}
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              {{ range .Result.Doctors }}
+                <div class="detail-card" style="padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                  <div style="max-width: 650px;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                      <h3 style="font-size: 1.15rem; font-weight: 700;">
+                        <a href="/doctor/{{ .ID }}" style="color: var(--primary-blue);">{{ .DisplayName }}</a>
+                      </h3>
+                      {{ if .Qualifications }}
+                        <span class="badge badge-pratham" style="font-size: 0.75rem;">{{ .Qualifications }}</span>
+                      {{ end }}
+                    </div>
+                    {{ if .Specialties }}
+                      <p style="font-size: 0.85rem; color: var(--neutral-dark); margin-bottom: 0.35rem;">
+                        <strong>Specialities:</strong> {{ range $i, $s := .Specialties }}{{ if $i }}, {{ end }}{{ $s }}{{ end }}
+                      </p>
+                    {{ end }}
+                    <p style="font-size: 0.8rem; color: var(--neutral-muted);">
+                      🏥 <strong>{{ .HospitalCount }}</strong> Affiliated Hospital(s)
+                    </p>
+                  </div>
+                  <div>
+                    <a href="/doctor/{{ .ID }}" class="btn btn-secondary" style="font-size: 0.8rem;">View Doctor Profile</a>
+                  </div>
+                </div>
+              {{ end }}
+            </div>
+          {{ end }}
+
+          <!-- Table View for Doctors -->
+          {{ if eq .Result.View "table" }}
+            <div class="table-card">
+              <div style="overflow-x: auto;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Doctor Name</th>
+                      <th>Qualifications</th>
+                      <th>Speciality</th>
+                      <th>Affiliated Hospitals</th>
+                      <th style="text-align: right;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {{ range .Result.Doctors }}
+                      <tr>
+                        <td>
+                          <a href="/doctor/{{ .ID }}" style="font-weight: 700; color: var(--primary-blue);">{{ .DisplayName }}</a>
+                        </td>
+                        <td>{{ if .Qualifications }}<span class="badge badge-pratham">{{ .Qualifications }}</span>{{ else }}—{{ end }}</td>
+                        <td style="font-size: 0.82rem;">
+                          {{ range .Specialties }}<span class="badge badge-anchor" style="margin: 1px;">{{ . }}</span>{{ end }}
+                        </td>
+                        <td style="font-size: 0.82rem;">
+                          {{ range .Hospitals }}
+                            <div><a href="/hospital/{{ .HospitalID }}" style="color: var(--primary-blue);">{{ .HospitalName }}</a> <span style="color: var(--neutral-muted); font-size: 0.75rem;">({{ .Location }})</span></div>
+                          {{ end }}
+                        </td>
+                        <td style="text-align: right;">
+                          <a href="/doctor/{{ .ID }}" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Profile</a>
+                        </td>
+                      </tr>
+                    {{ end }}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+
+      <!-- PAGINATION CONTROLS -->
+      {{ if gt .Result.TotalPages 1 }}
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+          <div style="font-size: 0.85rem; color: var(--neutral-muted);">
+            Showing page <strong>{{ .Result.Page }}</strong> of <strong>{{ .Result.TotalPages }}</strong> ({{ .Result.TotalCount }} total records)
+          </div>
+
+          <div class="pagination-links" style="display: flex; gap: 0.35rem; align-items: center;">
+            {{ if gt .Result.Page 1 }}
+              <a href="javascript:goToPage({{ sub .Result.Page 1 }})" class="btn btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">
+                ← Previous
+              </a>
+            {{ end }}
+
+            {{ $currPage := .Result.Page }}
+            {{ range .PageNumbers }}
+              <a href="javascript:goToPage({{ . }})" class="btn {{ if eq . $currPage }}btn-primary{{ else }}btn-secondary{{ end }}" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">
+                {{ . }}
+              </a>
+            {{ end }}
+
+            {{ if lt .Result.Page .Result.TotalPages }}
+              <a href="javascript:goToPage({{ add .Result.Page 1 }})" class="btn btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">
+                Next →
+              </a>
+            {{ end }}
+          </div>
+        </div>
+      {{ end }}
+    </main>
+  </div>
+</div>
+
+<!-- Dynamic Cascading Location & Filter Scripts -->
+<script>
+  function toggleMobileFilters() {
+    var sidebar = document.getElementById('filter-sidebar-card');
+    if (sidebar) {
+      sidebar.classList.toggle('mobile-open');
+    }
+  }
+
+  function filterSpecialtyList() {
+    var input = document.getElementById('spec-quick-filter');
+    var filter = input.value.toLowerCase();
+    var list = document.getElementById('spec-checkbox-list');
+    var items = list.getElementsByClassName('spec-chk-item');
+    for (var i = 0; i < items.length; i++) {
+      var nameSpan = items[i].querySelector('.spec-chk-name');
+      if (nameSpan) {
+        var text = nameSpan.textContent || nameSpan.innerText;
+        if (text.toLowerCase().indexOf(filter) > -1) {
+          items[i].style.display = 'flex';
+        } else {
+          items[i].style.display = 'none';
+        }
+      }
+    }
+  }
+
+  function onStateFilterChange(selectedState) {
+    var distSelect = document.getElementById('filter-district-select');
+    var locSelect = document.getElementById('filter-location-select');
+    if (!distSelect) return;
+
+    var distOpts = distSelect.options;
+    for (var i = 1; i < distOpts.length; i++) {
+      var opt = distOpts[i];
+      var optState = opt.getAttribute('data-state') || '';
+      if (!selectedState || optState.toLowerCase() === selectedState.toLowerCase()) {
+        opt.style.display = '';
+      } else {
+        opt.style.display = 'none';
+      }
+    }
+
+    if (locSelect) {
+      var locOpts = locSelect.options;
+      for (var j = 1; j < locOpts.length; j++) {
+        var lOpt = locOpts[j];
+        var lState = lOpt.getAttribute('data-state') || '';
+        if (!selectedState || lState.toLowerCase() === selectedState.toLowerCase()) {
+          lOpt.style.display = '';
+        } else {
+          lOpt.style.display = 'none';
+        }
+      }
+    }
+  }
+
+  function onDistrictFilterChange(selectedDistrict) {
+    var locSelect = document.getElementById('filter-location-select');
+    if (!locSelect) return;
+
+    var locOpts = locSelect.options;
+    for (var i = 1; i < locOpts.length; i++) {
+      var opt = locOpts[i];
+      var optDistrict = opt.getAttribute('data-district') || '';
+      if (!selectedDistrict || optDistrict.toLowerCase() === selectedDistrict.toLowerCase()) {
+        opt.style.display = '';
+      } else {
+        opt.style.display = 'none';
+      }
+    }
+  }
+
+  function updateSort(val) {
+    var url = new URL(window.location.href);
+    url.searchParams.set('sort_by', val);
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+  }
+
+  function updatePageSize(val) {
+    var url = new URL(window.location.href);
+    url.searchParams.set('page_size', val);
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+  }
+
+  function switchView(view) {
+    var url = new URL(window.location.href);
+    url.searchParams.set('view', view);
+    window.location.href = url.toString();
+  }
+
+  function goToPage(page) {
+    var url = new URL(window.location.href);
+    url.searchParams.set('page', page);
+    window.location.href = url.toString();
+  }
+
+  function removeParam(key) {
+    var url = new URL(window.location.href);
+    url.searchParams.delete(key);
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+  }
+
+  function removeArrayParam(key, val) {
+    var url = new URL(window.location.href);
+    var existing = url.searchParams.getAll(key);
+    url.searchParams.delete(key);
+    for (var i = 0; i < existing.length; i++) {
+      if (existing[i] !== val) {
+        url.searchParams.append(key, existing[i]);
+      }
+    }
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+  }
+
+  // Initialize cascading on load if state or district preselected
+  window.addEventListener('DOMContentLoaded', function() {
+    var stateSel = document.getElementById('filter-state-select');
+    if (stateSel && stateSel.value) {
+      onStateFilterChange(stateSel.value);
+    }
+    var distSel = document.getElementById('filter-district-select');
+    if (distSel && distSel.value) {
+      onDistrictFilterChange(distSel.value);
+    }
+  });
+</script>
+{{ end }}
