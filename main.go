@@ -93,7 +93,7 @@ func main() {
 			http.Redirect(w, r, "/?location="+locName, http.StatusFound)
 			return
 		}
-		if r.URL.Path == "/browse/states" || r.URL.Path == "/browse/specializations" {
+		if r.URL.Path == "/browse/states" || r.URL.Path == "/browse/geo" || r.URL.Path == "/browse/geography" || r.URL.Path == "/browse/specializations" {
 			publicH.BrowseGeoHandler(w, r)
 			return
 		}
