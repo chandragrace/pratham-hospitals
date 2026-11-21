@@ -817,6 +817,10 @@ footer {
   margin-right: 0.25rem;
 }
 
+.hint-label.mobile-only {
+  display: none;
+}
+
 .search-hint-chip {
   background: #FFFFFF;
   border: 1px solid var(--border-blue);
@@ -855,6 +859,104 @@ footer {
   font-weight: 600;
 }
 
+.mobile-filter-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--neutral-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.mobile-filter-close-btn:hover {
+  background: #F1F5F9;
+  color: #DC2626;
+}
+
+/* Mobile Cards View for Directory */
+.mobile-cards-view {
+  display: none;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.75rem;
+}
+
+.mobile-hospital-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  transition: box-shadow 0.15s ease;
+}
+
+.mobile-hospital-card:active {
+  box-shadow: var(--shadow-md);
+}
+
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.mobile-hospital-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  line-height: 1.3;
+}
+
+.mobile-hospital-geo {
+  font-size: 0.82rem;
+  color: var(--neutral-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.mobile-card-meta {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.mobile-card-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.spec-mini-pill {
+  background: #F1F5F9;
+  color: #334155;
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.mobile-card-footer {
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #F1F5F9;
+}
+
+.mobile-card-btn {
+  width: 100%;
+  justify-content: center;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.75rem;
+}
+
 /* Responsive adjustments across devices */
 @media (max-width: 900px) {
   .layout-sidebar-main {
@@ -862,6 +964,9 @@ footer {
   }
   .mobile-filter-bar {
     display: flex;
+  }
+  .mobile-filter-close-btn {
+    display: inline-block;
   }
   .filter-card {
     display: none;
@@ -873,6 +978,24 @@ footer {
   }
   .hero-title {
     font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-desktop-view {
+    display: none !important;
+  }
+  .mobile-cards-view {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-cards-view {
+    display: none !important;
+  }
+  .table-desktop-view {
+    display: block !important;
   }
 }
 
@@ -897,26 +1020,62 @@ footer {
     padding-bottom: 0.25rem;
     -webkit-overflow-scrolling: touch;
   }
-  .search-hints-bar {
-    justify-content: flex-start;
-    overflow-x: auto;
-    padding-bottom: 0.35rem;
-    -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
+  
+  /* Show only 1 single prominent example on mobile */
+  .hint-label.desktop-label {
+    display: none;
   }
-  .stats-banner {
-    gap: 0.5rem;
+  .hint-label.mobile-label {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--neutral-muted);
+  }
+  .desktop-only-hint {
+    display: none !important;
+  }
+  .search-hints-bar {
     justify-content: center;
+    gap: 0.5rem;
+    padding: 0;
+    margin-top: 0.75rem;
+  }
+  .search-hint-chip.mobile-featured {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.85rem;
+    border-color: var(--primary-blue);
+    background: #EFF6FF;
+    color: var(--primary-blue);
+    font-weight: 700;
+  }
+
+  /* Grid for stats so all 5 items fit symmetrically, nothing cut off */
+  .stats-banner {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 1rem;
   }
   .stat-item {
     background: #FFFFFF;
-    padding: 0.35rem 0.65rem;
+    padding: 0.5rem 0.75rem;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
     font-size: 0.75rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: auto;
+  }
+  .stat-item:last-child {
+    grid-column: 1 / -1; /* spans both columns so 291 Exclusion is 100% visible and centered */
   }
   .stat-number {
     font-size: 1.15rem;
+    font-weight: 800;
   }
   .detail-card {
     padding: 1.25rem;
@@ -942,23 +1101,19 @@ footer {
     padding: 0.65rem 1rem;
   }
   .hero-section {
-    padding: 2rem 0.75rem 1.5rem 0.75rem;
+    padding: 1.75rem 0.75rem 1.25rem 0.75rem;
   }
   .hero-title {
     font-size: 1.35rem;
     line-height: 1.25;
   }
   .hero-subtitle {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
   }
   .pagination-links {
     flex-wrap: wrap;
     gap: 0.25rem;
-  }
-  .stat-item {
-    flex: 1 1 calc(50% - 0.5rem);
-    justify-content: center;
-    text-align: center;
   }
 }
 

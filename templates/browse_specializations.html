@@ -70,13 +70,14 @@
       </form>
 
       <!-- Search Hint Suggestions -->
-      <div class="search-hints-bar" style="margin-top: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
-        <span style="font-size: 0.75rem; font-weight: 700; color: var(--neutral-muted); text-transform: uppercase;">Try searching:</span>
-        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Cardiology+%2B+Chennai" class="search-hint-chip">Cardiology + Chennai</a>
-        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Dr.+Kumar+%2B+Cardiology" class="search-hint-chip">Dr. Kumar + Cardiology</a>
-        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Apollo+%2B+Cardiology" class="search-hint-chip">Apollo + Cardiology</a>
-        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Government+%2B+Ariyalur+%2B+Cardiology" class="search-hint-chip">Government + Ariyalur + Cardiology</a>
-        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=MD+%2B+Cardiology+%2B+Chennai" class="search-hint-chip">MD + Cardiology + Chennai</a>
+      <div class="search-hints-bar">
+        <span class="hint-label desktop-label">Try searching:</span>
+        <span class="hint-label mobile-label">Try Search:</span>
+        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=MD+%2B+Cardiology+%2B+Chennai" class="search-hint-chip mobile-featured">MD + Cardiology + Chennai</a>
+        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Cardiology+%2B+Chennai" class="search-hint-chip desktop-only-hint">Cardiology + Chennai</a>
+        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Dr.+Kumar+%2B+Cardiology" class="search-hint-chip desktop-only-hint">Dr. Kumar + Cardiology</a>
+        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Apollo+%2B+Cardiology" class="search-hint-chip desktop-only-hint">Apollo + Cardiology</a>
+        <a href="/browse/specializations?tab={{ .Result.Tab }}&view={{ .Result.View }}&q=Government+%2B+Ariyalur+%2B+Cardiology" class="search-hint-chip desktop-only-hint">Government + Ariyalur + Cardiology</a>
       </div>
     </div>
   </div>
@@ -917,3 +918,4 @@
   });
 </script>
 {{ end }}
+
