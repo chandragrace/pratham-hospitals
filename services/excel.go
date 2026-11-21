@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
@@ -37,6 +36,7 @@ type RowPreviewHospital struct {
 	Type           string   `json:"type"`
 	CanonicalType  string   `json:"canonical_type"`
 	Status         string   `json:"status"` // 'valid_new', 'valid_update', 'valid_delete', 'invalid', 'warning'
+	HospitalStatus string   `json:"hospital_status,omitempty"` // 'active', 'inactive'
 	Message        string   `json:"message"`
 	ExistingID     string   `json:"existing_id,omitempty"`
 }
@@ -191,6 +191,17 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 			pRow.State = strings.TrimSpace(row[colMap["state"]])
 		}
 
+		// Read Status (default "active")
+		pRow.HospitalStatus = "active"
+		if colMap["status"] >= 0 && colMap["status"] < len(row) {
+			st := strings.ToLower(strings.TrimSpace(row[colMap["status"]]))
+			if st == "inactive" || st == "disabled" || st == "blocked" {
+				pRow.HospitalStatus = "inactive"
+			} else if st == "active" {
+				pRow.HospitalStatus = "active"
+			}
+		}
+
 		// Read Type
 		rawType := ""
 		if colMap["type"] >= 0 && colMap["type"] < len(row) {
@@ -292,10 +303,11 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 					    district = CASE WHEN $4 != '' THEN $4 ELSE district END,
 					    state = CASE WHEN $5 != '' THEN $5 ELSE state END,
 					    type = $6,
+					    status = CASE WHEN $7 != '' THEN $7 ELSE status END,
 					    updated_at = NOW()
-					WHERE id = $7
+					WHERE id = $8
 				`
-				_, err := tx.Exec(updateSQL, pRow.SNo, pRow.Address, pRow.Location, pRow.District, pRow.State, canonicalType, hospID)
+				_, err := tx.Exec(updateSQL, pRow.SNo, pRow.Address, pRow.Location, pRow.District, pRow.State, canonicalType, pRow.HospitalStatus, hospID)
 				if err != nil {
 					return nil, "", fmt.Errorf("error updating hospital row %d: %w", rowNum, err)
 				}
@@ -304,9 +316,9 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 				insertSQL := `
 					INSERT INTO hospitals 
 					(id, source_sno, hospital_name, normalized_name, address, location, district, state, type, public_visibility, status)
-					VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, 'active')
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, COALESCE(NULLIF($10, ''), 'active'))
 				`
-				_, err := tx.Exec(insertSQL, hospID, pRow.SNo, pRow.HospitalName, normName, pRow.Address, pRow.Location, pRow.District, pRow.State, canonicalType)
+				_, err := tx.Exec(insertSQL, hospID, pRow.SNo, pRow.HospitalName, normName, pRow.Address, pRow.Location, pRow.District, pRow.State, canonicalType, pRow.HospitalStatus)
 				if err != nil {
 					return nil, "", fmt.Errorf("error inserting hospital row %d: %w", rowNum, err)
 				}
@@ -870,6 +882,7 @@ func detectHospitalColumns(header []string) map[string]int {
 		"district":      -1,
 		"state":         -1,
 		"type":          -1,
+		"status":        -1,
 	}
 
 	for idx, col := range header {
@@ -894,6 +907,8 @@ func detectHospitalColumns(header []string) map[string]int {
 			m["state"] = idx
 		} else if strings.Contains(clean, "type") || strings.Contains(clean, "category") {
 			m["type"] = idx
+		} else if clean == "status" || clean == "state_status" {
+			m["status"] = idx
 		}
 	}
 	return m
@@ -943,7 +958,7 @@ func (s *ExcelService) ExportDatabaseExcel() (*excelize.File, error) {
 	f := excelize.NewFile()
 
 	// Header styles
-	headerStyle, _ := f.NewStyle(&excelize.Style{
+	headerStyle1, _ := f.NewStyle(&excelize.Style{
 		Font:      &excelize.Font{Bold: true, Color: "#FFFFFF"},
 		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#1E3A8A"}, Pattern: 1},
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
@@ -953,60 +968,71 @@ func (s *ExcelService) ExportDatabaseExcel() (*excelize.File, error) {
 		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#0D9488"}, Pattern: 1},
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
 	})
+	headerStyle3, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "#FFFFFF"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#4338CA"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+	})
 
 	// -------------------------------------------------------------
-	// Sheet 1: Hospitals Master
+	// Sheet 1: Hospital_Master (Matches Master Upload format)
 	// -------------------------------------------------------------
-	hospSheet := "Hospitals_Master"
+	hospSheet := "Hospital_Master"
 	f.SetSheetName("Sheet1", hospSheet)
 
-	hospHeaders := []string{"S.NO", "Hospital Name", "Category", "Status", "Address", "Location", "District", "State", "Pincode", "Phone", "Email", "Created At"}
+	hospHeaders := []string{"Action", "S.NO", "Hospital Name", "Address", "Location", "District", "State", "Type", "Status"}
 	for colIdx, h := range hospHeaders {
 		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 1)
 		f.SetCellValue(hospSheet, cell, h)
 	}
-	f.SetRowStyle(hospSheet, 1, 1, headerStyle)
+	f.SetRowStyle(hospSheet, 1, 1, headerStyle1)
 
 	hRows, err := s.db.Query(`
 		SELECT id, hospital_name, type, status, 
-		       COALESCE(address, ''), COALESCE(location, ''), COALESCE(district, ''), COALESCE(state, ''), 
-		       COALESCE(pincode, ''), COALESCE(phone, ''), COALESCE(email, ''), created_at
+		       COALESCE(address, ''), COALESCE(location, ''), COALESCE(district, ''), COALESCE(state, '')
 		FROM hospitals
 		ORDER BY hospital_name ASC
 	`)
-	if err == nil {
-		defer hRows.Close()
-		rowIdx := 2
-		sno := 1
-		for hRows.Next() {
-			var id, name, hType, status, addr, loc, dist, state, pin, phone, email string
-			var createdAt time.Time
-			if err := hRows.Scan(&id, &name, &hType, &status, &addr, &loc, &dist, &state, &pin, &phone, &email, &createdAt); err == nil {
-				f.SetCellValue(hospSheet, fmt.Sprintf("A%d", rowIdx), sno)
-				f.SetCellValue(hospSheet, fmt.Sprintf("B%d", rowIdx), name)
-				f.SetCellValue(hospSheet, fmt.Sprintf("C%d", rowIdx), hType)
-				f.SetCellValue(hospSheet, fmt.Sprintf("D%d", rowIdx), status)
-				f.SetCellValue(hospSheet, fmt.Sprintf("E%d", rowIdx), addr)
-				f.SetCellValue(hospSheet, fmt.Sprintf("F%d", rowIdx), loc)
-				f.SetCellValue(hospSheet, fmt.Sprintf("G%d", rowIdx), dist)
-				f.SetCellValue(hospSheet, fmt.Sprintf("H%d", rowIdx), state)
-				f.SetCellValue(hospSheet, fmt.Sprintf("I%d", rowIdx), pin)
-				f.SetCellValue(hospSheet, fmt.Sprintf("J%d", rowIdx), phone)
-				f.SetCellValue(hospSheet, fmt.Sprintf("K%d", rowIdx), email)
-				f.SetCellValue(hospSheet, fmt.Sprintf("L%d", rowIdx), createdAt.Format("2006-01-02 15:04"))
-				rowIdx++
-				sno++
-			}
+	if err != nil {
+		return nil, fmt.Errorf("error querying hospitals: %w", err)
+	}
+	defer hRows.Close()
+
+	rowIdx := 2
+	sno := 1
+	for hRows.Next() {
+		var id, name, hType, status, addr, loc, dist, state string
+		if err := hRows.Scan(&id, &name, &hType, &status, &addr, &loc, &dist, &state); err == nil {
+			f.SetCellValue(hospSheet, fmt.Sprintf("A%d", rowIdx), "modify")
+			f.SetCellValue(hospSheet, fmt.Sprintf("B%d", rowIdx), sno)
+			f.SetCellValue(hospSheet, fmt.Sprintf("C%d", rowIdx), name)
+			f.SetCellValue(hospSheet, fmt.Sprintf("D%d", rowIdx), addr)
+			f.SetCellValue(hospSheet, fmt.Sprintf("E%d", rowIdx), loc)
+			f.SetCellValue(hospSheet, fmt.Sprintf("F%d", rowIdx), dist)
+			f.SetCellValue(hospSheet, fmt.Sprintf("G%d", rowIdx), state)
+			f.SetCellValue(hospSheet, fmt.Sprintf("H%d", rowIdx), hType)
+			f.SetCellValue(hospSheet, fmt.Sprintf("I%d", rowIdx), status)
+			rowIdx++
+			sno++
 		}
 	}
+	_ = f.SetColWidth(hospSheet, "A", "A", 12)
+	_ = f.SetColWidth(hospSheet, "B", "B", 8)
+	_ = f.SetColWidth(hospSheet, "C", "C", 38)
+	_ = f.SetColWidth(hospSheet, "D", "D", 28)
+	_ = f.SetColWidth(hospSheet, "E", "E", 22)
+	_ = f.SetColWidth(hospSheet, "F", "F", 18)
+	_ = f.SetColWidth(hospSheet, "G", "G", 18)
+	_ = f.SetColWidth(hospSheet, "H", "H", 15)
+	_ = f.SetColWidth(hospSheet, "I", "I", 12)
 
 	// -------------------------------------------------------------
-	// Sheet 2: Specializations & Doctors
+	// Sheet 2: Specialization_Doctor (Matches Secondary Upload format)
 	// -------------------------------------------------------------
-	specSheet := "Specializations_and_Doctors"
+	specSheet := "Specialization_Doctor"
 	f.NewSheet(specSheet)
 
-	secHeaders := []string{"S.NO", "Hospital Name", "Specialization", "Description", "Doctor Name"}
+	secHeaders := []string{"Action", "Hospital Name", "Specialization", "Description", "Doctor Name"}
 	for colIdx, h := range secHeaders {
 		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 1)
 		f.SetCellValue(specSheet, cell, h)
@@ -1016,6 +1042,74 @@ func (s *ExcelService) ExportDatabaseExcel() (*excelize.File, error) {
 	secRows, err := s.db.Query(`
 		SELECT 
 			h.hospital_name,
+			COALESCE(sp.canonical_name, '') as specialization,
+			COALESCE(hs.description, '') as description,
+			COALESCE(d.display_name, '') as doctor_name
+		FROM hospital_doctors hd
+		JOIN hospitals h ON hd.hospital_id = h.id
+		JOIN doctors d ON hd.doctor_id = d.id
+		LEFT JOIN doctor_specializations ds ON hd.id = ds.hospital_doctor_id
+		LEFT JOIN hospital_specializations hs ON ds.hospital_specialization_id = hs.id
+		LEFT JOIN specializations sp ON hs.specialization_id = sp.id
+
+		UNION
+
+		SELECT
+			h.hospital_name,
+			sp.canonical_name as specialization,
+			COALESCE(hs.description, '') as description,
+			'' as doctor_name
+		FROM hospital_specializations hs
+		JOIN hospitals h ON hs.hospital_id = h.id
+		JOIN specializations sp ON hs.specialization_id = sp.id
+		WHERE NOT EXISTS (
+			SELECT 1 FROM doctor_specializations ds WHERE ds.hospital_specialization_id = hs.id
+		)
+		ORDER BY hospital_name ASC, specialization ASC, doctor_name ASC
+	`)
+	if err == nil {
+		defer secRows.Close()
+		secRowIdx := 2
+		for secRows.Next() {
+			var hospName, specName, desc, docName string
+			if err := secRows.Scan(&hospName, &specName, &desc, &docName); err == nil {
+				f.SetCellValue(specSheet, fmt.Sprintf("A%d", secRowIdx), "modify")
+				f.SetCellValue(specSheet, fmt.Sprintf("B%d", secRowIdx), hospName)
+				f.SetCellValue(specSheet, fmt.Sprintf("C%d", secRowIdx), specName)
+				f.SetCellValue(specSheet, fmt.Sprintf("D%d", secRowIdx), desc)
+				f.SetCellValue(specSheet, fmt.Sprintf("E%d", secRowIdx), docName)
+				secRowIdx++
+			}
+		}
+	}
+	_ = f.SetColWidth(specSheet, "A", "A", 12)
+	_ = f.SetColWidth(specSheet, "B", "B", 38)
+	_ = f.SetColWidth(specSheet, "C", "C", 24)
+	_ = f.SetColWidth(specSheet, "D", "D", 32)
+	_ = f.SetColWidth(specSheet, "E", "E", 34)
+
+	// -------------------------------------------------------------
+	// Sheet 3: Complete_Directory (Consolidated View)
+	// -------------------------------------------------------------
+	allSheet := "Complete_Directory"
+	f.NewSheet(allSheet)
+
+	allHeaders := []string{"Action", "S.NO", "Hospital Name", "Category", "Status", "Location", "District", "State", "Address", "Specialization", "Description", "Doctor Name"}
+	for colIdx, h := range allHeaders {
+		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 1)
+		f.SetCellValue(allSheet, cell, h)
+	}
+	f.SetRowStyle(allSheet, 1, 1, headerStyle3)
+
+	allRows, err := s.db.Query(`
+		SELECT 
+			h.hospital_name,
+			h.type,
+			h.status,
+			COALESCE(h.location, ''),
+			COALESCE(h.district, ''),
+			COALESCE(h.state, ''),
+			COALESCE(h.address, ''),
 			COALESCE(sp.canonical_name, ''),
 			COALESCE(hs.description, ''),
 			COALESCE(d.display_name, '')
@@ -1025,26 +1119,44 @@ func (s *ExcelService) ExportDatabaseExcel() (*excelize.File, error) {
 		LEFT JOIN doctor_specializations ds ON hs.id = ds.hospital_specialization_id
 		LEFT JOIN hospital_doctors hd ON ds.hospital_doctor_id = hd.id
 		LEFT JOIN doctors d ON hd.doctor_id = d.id
-		WHERE sp.canonical_name IS NOT NULL OR d.display_name IS NOT NULL
 		ORDER BY h.hospital_name ASC, sp.canonical_name ASC, d.display_name ASC
 	`)
 	if err == nil {
-		defer secRows.Close()
-		rowIdx := 2
-		sno := 1
-		for secRows.Next() {
-			var hospName, specName, desc, docName string
-			if err := secRows.Scan(&hospName, &specName, &desc, &docName); err == nil {
-				f.SetCellValue(specSheet, fmt.Sprintf("A%d", rowIdx), sno)
-				f.SetCellValue(specSheet, fmt.Sprintf("B%d", rowIdx), hospName)
-				f.SetCellValue(specSheet, fmt.Sprintf("C%d", rowIdx), specName)
-				f.SetCellValue(specSheet, fmt.Sprintf("D%d", rowIdx), desc)
-				f.SetCellValue(specSheet, fmt.Sprintf("E%d", rowIdx), docName)
-				rowIdx++
-				sno++
+		defer allRows.Close()
+		allRowIdx := 2
+		allSno := 1
+		for allRows.Next() {
+			var hName, hType, hStat, loc, dist, state, addr, spec, desc, doc string
+			if err := allRows.Scan(&hName, &hType, &hStat, &loc, &dist, &state, &addr, &spec, &desc, &doc); err == nil {
+				f.SetCellValue(allSheet, fmt.Sprintf("A%d", allRowIdx), "modify")
+				f.SetCellValue(allSheet, fmt.Sprintf("B%d", allRowIdx), allSno)
+				f.SetCellValue(allSheet, fmt.Sprintf("C%d", allRowIdx), hName)
+				f.SetCellValue(allSheet, fmt.Sprintf("D%d", allRowIdx), hType)
+				f.SetCellValue(allSheet, fmt.Sprintf("E%d", allRowIdx), hStat)
+				f.SetCellValue(allSheet, fmt.Sprintf("F%d", allRowIdx), loc)
+				f.SetCellValue(allSheet, fmt.Sprintf("G%d", allRowIdx), dist)
+				f.SetCellValue(allSheet, fmt.Sprintf("H%d", allRowIdx), state)
+				f.SetCellValue(allSheet, fmt.Sprintf("I%d", allRowIdx), addr)
+				f.SetCellValue(allSheet, fmt.Sprintf("J%d", allRowIdx), spec)
+				f.SetCellValue(allSheet, fmt.Sprintf("K%d", allRowIdx), desc)
+				f.SetCellValue(allSheet, fmt.Sprintf("L%d", allRowIdx), doc)
+				allRowIdx++
+				allSno++
 			}
 		}
 	}
+	_ = f.SetColWidth(allSheet, "A", "A", 12)
+	_ = f.SetColWidth(allSheet, "B", "B", 8)
+	_ = f.SetColWidth(allSheet, "C", "C", 38)
+	_ = f.SetColWidth(allSheet, "D", "D", 14)
+	_ = f.SetColWidth(allSheet, "E", "E", 12)
+	_ = f.SetColWidth(allSheet, "F", "F", 20)
+	_ = f.SetColWidth(allSheet, "G", "G", 18)
+	_ = f.SetColWidth(allSheet, "H", "H", 18)
+	_ = f.SetColWidth(allSheet, "I", "I", 28)
+	_ = f.SetColWidth(allSheet, "J", "J", 22)
+	_ = f.SetColWidth(allSheet, "K", "K", 28)
+	_ = f.SetColWidth(allSheet, "L", "L", 32)
 
 	return f, nil
 }

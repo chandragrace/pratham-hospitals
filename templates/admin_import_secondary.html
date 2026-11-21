@@ -114,6 +114,7 @@
               <thead>
                 <tr>
                   <th>Row</th>
+                  <th>Action</th>
                   <th>Hospital Name in File</th>
                   <th>Matched Master Hospital</th>
                   <th>Specialization</th>
@@ -127,6 +128,15 @@
                 {{ range .Preview.Rows }}
                   <tr>
                     <td>{{ .RowNumber }}</td>
+                    <td>
+                      {{ if eq .Action "delete" }}
+                        <span class="badge badge-exclusion">Delete</span>
+                      {{ else if eq .Action "modify" }}
+                        <span class="badge badge-pratham">Modify</span>
+                      {{ else }}
+                        <span class="badge badge-anchor">Add</span>
+                      {{ end }}
+                    </td>
                     <td style="font-weight: 700;">{{ .HospitalName }}</td>
                     <td>
                       {{ if .MatchedHospitalName }}

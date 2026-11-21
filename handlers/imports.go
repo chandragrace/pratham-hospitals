@@ -108,6 +108,9 @@ func (h *ImportHandler) ImportMasterHandler(w http.ResponseWriter, r *http.Reque
 		if !dryRun {
 			successMsg = fmt.Sprintf("Hospital Master imported successfully! Batch ID: %s. %d rows created, %d rows updated.",
 				batchID, preview.NewRows, preview.UpdateRows)
+			if preview.DeleteRows > 0 {
+				successMsg += fmt.Sprintf(" %d rows deleted.", preview.DeleteRows)
+			}
 		}
 
 		data := struct {
