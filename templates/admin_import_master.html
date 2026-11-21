@@ -7,7 +7,11 @@
         Upload primary hospital master workbook (.xlsx or .csv). Creates or updates core hospital identities.
       </p>
     </div>
-    <div>
+    <div style="display: flex; gap: 0.75rem;">
+      <a onclick="history.back(); return false;" href="/admin/dashboard" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Back
+      </a>
       <a href="/admin/template/master" class="btn btn-secondary">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Download Excel Template (.xlsx)
@@ -20,7 +24,7 @@
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
     <div>
       <strong>Import Rules:</strong>
-      Hospital Name is the essential identity field. S.NO is retained as an external reference. Incomplete records (blank Address, District, State, or Location) are accepted and stored as NULL without rejecting rows. Re-uploading updates existing records without creating duplicates.
+      Hospital Name is the essential identity field. S.NO is retained as an external reference. Incomplete records (blank Address, District, State, or Location) are accepted and stored as NULL without rejecting rows. Re-uploading with <strong>Action=modify</strong> updates existing records; <strong>Action=delete</strong> permanently removes them. If Action column is omitted, rows default to <strong>add</strong>.
     </div>
   </div>
 
@@ -114,7 +118,7 @@
             <thead>
               <tr>
                 <th>Row</th>
-                <th>S.NO</th>
+                <th>Action</th>
                 <th>Hospital Name</th>
                 <th>Location</th>
                 <th>District</th>
@@ -127,7 +131,15 @@
               {{ range .Preview.Rows }}
                 <tr>
                   <td>{{ .RowNumber }}</td>
-                  <td>{{ if .SNo }}{{ .SNo }}{{ else }}—{{ end }}</td>
+                  <td>
+                    {{ if eq .Action "delete" }}
+                      <span class="badge badge-blocked">Delete</span>
+                    {{ else if eq .Action "modify" }}
+                      <span class="badge badge-pratham">Modify</span>
+                    {{ else }}
+                      <span class="badge badge-pratham-neo">Add</span>
+                    {{ end }}
+                  </td>
                   <td style="font-weight: 700;">{{ .HospitalName }}</td>
                   <td>{{ if .Location }}{{ .Location }}{{ else }}—{{ end }}</td>
                   <td>{{ if .District }}{{ .District }}{{ else }}—{{ end }}</td>
@@ -156,3 +168,4 @@
   {{ end }}
 </div>
 {{ end }}
+

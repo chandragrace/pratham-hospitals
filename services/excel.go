@@ -26,6 +26,7 @@ func NewExcelService(db *sql.DB) *ExcelService {
 // RowPreviewHospital holds preview data for hospital master rows
 type RowPreviewHospital struct {
 	RowNumber      int      `json:"row_number"`
+	Action         string   `json:"action"` // 'add', 'modify', 'delete'
 	SNo            *int     `json:"sno"`
 	HospitalName   string   `json:"hospital_name"`
 	Address        string   `json:"address"`
@@ -34,7 +35,7 @@ type RowPreviewHospital struct {
 	State          string   `json:"state"`
 	Type           string   `json:"type"`
 	CanonicalType  string   `json:"canonical_type"`
-	Status         string   `json:"status"` // 'valid_new', 'valid_update', 'invalid', 'warning'
+	Status         string   `json:"status"` // 'valid_new', 'valid_update', 'valid_delete', 'invalid', 'warning'
 	Message        string   `json:"message"`
 	ExistingID     string   `json:"existing_id,omitempty"`
 }
@@ -45,6 +46,7 @@ type PreviewHospitalResult struct {
 	TotalRows       int                   `json:"total_rows"`
 	NewRows         int                   `json:"new_rows"`
 	UpdateRows      int                   `json:"update_rows"`
+	DeleteRows      int                   `json:"delete_rows"`
 	WarningRows     int                   `json:"warning_rows"`
 	InvalidRows     int                   `json:"invalid_rows"`
 	DetectedColumns []string              `json:"detected_columns"`
@@ -119,6 +121,7 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 	updatedCount := 0
 	invalidCount := 0
 	warningCount := 0
+	deletedCount := 0
 
 	for i := 1; i < len(rows); i++ {
 		row := rows[i]
@@ -129,6 +132,20 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 		rowNum := i + 1
 		pRow := RowPreviewHospital{
 			RowNumber: rowNum,
+		}
+
+		// Read Action column (default: "add")
+		pRow.Action = "add"
+		if colMap["action"] >= 0 && colMap["action"] < len(row) {
+			actionVal := strings.ToLower(strings.TrimSpace(row[colMap["action"]]))
+			switch actionVal {
+			case "modify", "update", "edit":
+				pRow.Action = "modify"
+			case "delete", "remove":
+				pRow.Action = "delete"
+			default:
+				pRow.Action = "add"
+			}
 		}
 
 		// Read Hospital Name
@@ -180,31 +197,24 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 		}
 		pRow.Type = rawType
 
-		// Validate Type canonical values: Pratham, Pratham Neo, Network, Blocked
+		// Validate Type canonical values: Pratham, Anchor, Network, Exclusion
 		canonicalType := "Pratham"
 		lowerType := strings.ToLower(rawType)
 		switch lowerType {
 		case "pratham":
 			canonicalType = "Pratham"
-		case "pratham neo", "prathamneo", "neo":
-			canonicalType = "Pratham Neo"
+		case "anchor", "pratham neo", "prathamneo", "neo":
+			canonicalType = "Anchor"
 		case "network":
 			canonicalType = "Network"
-		case "blocked":
-			canonicalType = "Blocked"
+		case "exclusion", "blocked":
+			canonicalType = "Exclusion"
 		case "blacklisted":
 			preview.HasBlacklisted = true
-			if mapBlacklistedToBlocked {
-				canonicalType = "Blocked"
-				pRow.Message = "Mapped legacy 'Blacklisted' to canonical 'Blocked'"
-				pRow.Status = "warning"
-				warningCount++
-			} else {
-				canonicalType = "Blocked"
-				pRow.Message = "Legacy value 'Blacklisted' detected; confirm mapping to 'Blocked'"
-				pRow.Status = "warning"
-				warningCount++
-			}
+			canonicalType = "Exclusion"
+			pRow.Message = "Mapped legacy 'Blacklisted' to canonical 'Exclusion'"
+			pRow.Status = "warning"
+			warningCount++
 		default:
 			if rawType == "" {
 				canonicalType = "Pratham" // default
@@ -227,7 +237,21 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 			existing, found = existingMap[normName]
 		}
 
-		if found {
+		// Handle action-based logic
+		if pRow.Action == "delete" {
+			if !found {
+				pRow.Status = "invalid"
+				pRow.Message = "Delete requested but hospital not found in master records"
+				preview.InvalidRows++
+				invalidCount++
+			} else {
+				pRow.ExistingID = existing.ID
+				pRow.Status = "valid_delete"
+				pRow.Message = "Hospital will be permanently deleted"
+				preview.DeleteRows++
+				deletedCount++
+			}
+		} else if found {
 			pRow.ExistingID = existing.ID
 			if pRow.Status == "" {
 				pRow.Status = "valid_update"
@@ -247,7 +271,17 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 		// Execute commit if not dry run
 		if !dryRun && tx != nil {
 			var hospID string
-			if found {
+			if pRow.Action == "delete" && pRow.ExistingID != "" {
+				// Hard delete: remove all related records then the hospital
+				hospID = pRow.ExistingID
+				_, _ = tx.Exec(`DELETE FROM doctor_specializations ds USING hospital_doctors hd WHERE hd.id = ds.hospital_doctor_id AND hd.hospital_id = $1`, hospID)
+				_, _ = tx.Exec(`DELETE FROM hospital_doctors WHERE hospital_id = $1`, hospID)
+				_, _ = tx.Exec(`DELETE FROM hospital_specializations WHERE hospital_id = $1`, hospID)
+				_, err := tx.Exec(`DELETE FROM hospitals WHERE id = $1`, hospID)
+				if err != nil {
+					return nil, "", fmt.Errorf("error deleting hospital row %d: %w", rowNum, err)
+				}
+			} else if found {
 				hospID = existing.ID
 				updateSQL := `
 					UPDATE hospitals 
@@ -290,6 +324,7 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 				"name":     pRow.HospitalName,
 				"location": pRow.Location,
 				"type":     rawType,
+				"action":   pRow.Action,
 			}
 			srcBytes, _ := json.Marshal(srcMap)
 			_, _ = tx.Exec(logSQL, uuid.New().String(), batchID, rowNum, string(srcBytes), pRow.Status, pRow.Message, "")
@@ -306,8 +341,8 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 			SET total_rows = $1, accepted_rows = $2, created_rows = $3, updated_rows = $4, invalid_rows = $5, review_rows = $6, status = 'completed', summary_notes = $7
 			WHERE id = $8
 		`
-		summaryNotes := fmt.Sprintf("Imported %d new hospitals, updated %d, with %d warnings and %d invalid rows",
-			createdCount, updatedCount, warningCount, invalidCount)
+		summaryNotes := fmt.Sprintf("Imported %d new, updated %d, deleted %d hospitals, with %d warnings and %d invalid rows",
+			createdCount, updatedCount, deletedCount, warningCount, invalidCount)
 		_, err := tx.Exec(updateBatchSQL, preview.TotalRows, createdCount+updatedCount, createdCount, updatedCount, invalidCount, warningCount, summaryNotes, batchID)
 		if err != nil {
 			return nil, "", fmt.Errorf("error updating import batch: %w", err)
@@ -324,13 +359,14 @@ func (s *ExcelService) ParseHospitalMaster(r io.Reader, filename string, mapBlac
 // RowPreviewSecondary holds preview data for doctor/specialization rows
 type RowPreviewSecondary struct {
 	RowNumber             int    `json:"row_number"`
+	Action                string `json:"action"` // 'add', 'modify', 'delete'
 	HospitalName          string `json:"hospital_name"`
 	MatchedHospitalID     string `json:"matched_hospital_id,omitempty"`
 	MatchedHospitalName   string `json:"matched_hospital_name,omitempty"`
 	Specialization        string `json:"specialization"`
 	Description           string `json:"description"`
 	DoctorName            string `json:"doctor_name"`
-	Status                string `json:"status"` // 'valid', 'unassigned_specialty', 'hospital_not_found', 'ambiguous', 'invalid'
+	Status                string `json:"status"` // 'valid', 'unassigned_specialty', 'hospital_not_found', 'ambiguous', 'invalid', 'valid_delete'
 	Message               string `json:"message"`
 }
 
@@ -443,6 +479,20 @@ func (s *ExcelService) ParseSecondaryUpload(r io.Reader, filename string, dryRun
 			pRow.DoctorName = strings.TrimSpace(row[colMap["doctor_name"]])
 		}
 
+		// Read Action column (default: "add")
+		pRow.Action = "add"
+		if colMap["action"] >= 0 && colMap["action"] < len(row) {
+			actionVal := strings.ToLower(strings.TrimSpace(row[colMap["action"]]))
+			switch actionVal {
+			case "modify", "update", "edit":
+				pRow.Action = "modify"
+			case "delete", "remove":
+				pRow.Action = "delete"
+			default:
+				pRow.Action = "add"
+			}
+		}
+
 		// Empty association check
 		if pRow.HospitalName == "" {
 			pRow.Status = "invalid"
@@ -517,6 +567,50 @@ func (s *ExcelService) ParseSecondaryUpload(r io.Reader, filename string, dryRun
 
 		// If commit mode: execute DB operations
 		if !dryRun && tx != nil {
+			if pRow.Action == "delete" {
+				// Hard delete: remove doctor-hospital link and specialization link
+				if pRow.DoctorName != "" {
+					var docID string
+					_ = tx.QueryRow("SELECT id FROM doctors WHERE display_name = $1", pRow.DoctorName).Scan(&docID)
+					if docID != "" {
+						// Delete doctor_specializations for this hospital+doctor
+						_, _ = tx.Exec(`
+							DELETE FROM doctor_specializations ds
+							USING hospital_doctors hd
+							WHERE hd.id = ds.hospital_doctor_id
+							  AND hd.hospital_id = $1
+							  AND hd.doctor_id = $2
+						`, pRow.MatchedHospitalID, docID)
+						// Delete hospital_doctors link
+						_, _ = tx.Exec(`
+							DELETE FROM hospital_doctors
+							WHERE hospital_id = $1 AND doctor_id = $2
+						`, pRow.MatchedHospitalID, docID)
+					}
+				}
+				if pRow.Specialization != "" {
+					normSpec := NormalizeString(pRow.Specialization)
+					var specID string
+					_ = tx.QueryRow("SELECT id FROM specializations WHERE normalized_name = $1", normSpec).Scan(&specID)
+					if specID != "" {
+						// Delete all doctor_specializations linked to this hospital_specialization
+						_, _ = tx.Exec(`
+							DELETE FROM doctor_specializations ds
+							USING hospital_specializations hs
+							WHERE hs.id = ds.hospital_specialization_id
+							  AND hs.hospital_id = $1
+							  AND hs.specialization_id = $2
+						`, pRow.MatchedHospitalID, specID)
+						// Delete hospital_specializations link
+						_, _ = tx.Exec(`
+							DELETE FROM hospital_specializations
+							WHERE hospital_id = $1 AND specialization_id = $2
+						`, pRow.MatchedHospitalID, specID)
+					}
+				}
+				pRow.Status = "deleted"
+				pRow.Message = "Record deleted"
+			} else {
 			var specID string
 			var hospSpecID string
 
@@ -585,6 +679,7 @@ func (s *ExcelService) ParseSecondaryUpload(r io.Reader, filename string, dryRun
 					}
 				}
 			}
+			} // end else (add/modify)
 
 			// Log row
 			logSQL := `
@@ -633,7 +728,7 @@ func (s *ExcelService) GenerateHospitalMasterTemplate() (*excelize.File, error) 
 	sheet := "Hospital_Master"
 	f.SetSheetName("Sheet1", sheet)
 
-	headers := []string{"S.NO", "Hospital Name", "Address", "Location", "District", "State", "Type"}
+	headers := []string{"Action", "S.NO", "Hospital Name", "Address", "Location", "District", "State", "Type"}
 	for colIdx, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -641,9 +736,9 @@ func (s *ExcelService) GenerateHospitalMasterTemplate() (*excelize.File, error) 
 
 	// Sample rows
 	samples := [][]interface{}{
-		{1, "Apollo Speciality Hospitals", "21 Greams Lane", "Thousand Lights", "Chennai", "Tamil Nadu", "Pratham"},
-		{2, "Kauvery Hospital", "", "Kovilambakkam", "Chengalpattu", "Tamil Nadu", "Pratham Neo"},
-		{3, "Lifeline Multispeciality", "", "Adyar", "Chennai", "Tamil Nadu", "Network"},
+		{"add", 1, "Apollo Speciality Hospitals", "21 Greams Lane", "Thousand Lights", "Chennai", "Tamil Nadu", "Pratham"},
+		{"modify", 2, "Kauvery Hospital", "", "Kovilambakkam", "Chengalpattu", "Tamil Nadu", "Anchor"},
+		{"delete", 3, "Lifeline Multispeciality", "", "Adyar", "Chennai", "Tamil Nadu", "Network"},
 	}
 	for rowIdx, row := range samples {
 		for colIdx, val := range row {
@@ -667,17 +762,17 @@ func (s *ExcelService) GenerateSecondaryTemplate() (*excelize.File, error) {
 	sheet := "Specialization_Doctor"
 	f.SetSheetName("Sheet1", sheet)
 
-	headers := []string{"Hospital Name", "Specialization", "Description", "Doctor Name"}
+	headers := []string{"Action", "Hospital Name", "Specialization", "Description", "Doctor Name"}
 	for colIdx, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 1)
 		f.SetCellValue(sheet, cell, h)
 	}
 
 	samples := [][]interface{}{
-		{"Apollo Speciality Hospitals", "Cardiology", "Cardio Robotic Surgery", "Dr. Rajesh Kumar MBBS MD DM"},
-		{"Apollo Speciality Hospitals", "Cardiology", "", "Dr. Priya Ramanathan MBBS DNB"},
-		{"Apollo Speciality Hospitals", "", "", "Dr. R. Vijay Anand MBBS MS"},
-		{"Kauvery Hospital", "Neurology", "Comprehensive Stroke Care", "Dr. K. Venkatesh MBBS MD DM"},
+		{"add", "Apollo Speciality Hospitals", "Cardiology", "Cardio Robotic Surgery", "Dr. Rajesh Kumar MBBS MD DM"},
+		{"add", "Apollo Speciality Hospitals", "Cardiology", "", "Dr. Priya Ramanathan MBBS DNB"},
+		{"modify", "Apollo Speciality Hospitals", "", "", "Dr. R. Vijay Anand MBBS MS"},
+		{"delete", "Kauvery Hospital", "Neurology", "Comprehensive Stroke Care", "Dr. K. Venkatesh MBBS MD DM"},
 	}
 	for rowIdx, row := range samples {
 		for colIdx, val := range row {
@@ -766,6 +861,7 @@ func readTabularData(r io.Reader, filename string) ([][]string, error) {
 
 func detectHospitalColumns(header []string) map[string]int {
 	m := map[string]int{
+		"action":        -1,
 		"sno":           -1,
 		"hospital_name": -1,
 		"address":       -1,
@@ -781,7 +877,9 @@ func detectHospitalColumns(header []string) map[string]int {
 		clean = strings.ReplaceAll(clean, "_", "")
 		clean = strings.ReplaceAll(clean, " ", "")
 
-		if strings.Contains(clean, "sno") || strings.Contains(clean, "serial") {
+		if strings.Contains(clean, "action") || strings.Contains(clean, "tag") || strings.Contains(clean, "operation") {
+			m["action"] = idx
+		} else if strings.Contains(clean, "sno") || strings.Contains(clean, "serial") {
 			m["sno"] = idx
 		} else if strings.Contains(clean, "hospitalname") || clean == "hospital" || clean == "name" {
 			m["hospital_name"] = idx
@@ -802,6 +900,7 @@ func detectHospitalColumns(header []string) map[string]int {
 
 func detectSecondaryColumns(header []string) map[string]int {
 	m := map[string]int{
+		"action":         -1,
 		"hospital_name":  -1,
 		"specialization": -1,
 		"description":    -1,
@@ -814,7 +913,9 @@ func detectSecondaryColumns(header []string) map[string]int {
 		clean = strings.ReplaceAll(clean, "_", "")
 		clean = strings.ReplaceAll(clean, " ", "")
 
-		if strings.Contains(clean, "hospital") {
+		if strings.Contains(clean, "action") || strings.Contains(clean, "tag") || strings.Contains(clean, "operation") {
+			m["action"] = idx
+		} else if strings.Contains(clean, "hospital") {
 			m["hospital_name"] = idx
 		} else if strings.Contains(clean, "special") || clean == "dept" || clean == "department" {
 			m["specialization"] = idx

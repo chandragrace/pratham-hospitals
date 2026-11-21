@@ -181,3 +181,4 @@ type GeoCountItem struct {
 	HospitalCount int    `json:"hospital_count"`
 	DoctorCount   int    `json:"doctor_count"`
 }
+

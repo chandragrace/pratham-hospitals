@@ -20,15 +20,14 @@
         {{ end }}
       </div>
       <div>
-        <a href="/" class="btn btn-secondary">Back to Directory</a>
+        <a onclick="history.back()" href="/" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </a>
       </div>
     </div>
 
     <div class="info-grid">
-      <div class="info-item">
-        <label>Doctor ID</label>
-        <p style="font-family: monospace; font-size: 0.85rem; color: var(--neutral-muted);">{{ .Doctor.ID }}</p>
-      </div>
       <div class="info-item">
         <label>Hospital Affiliations</label>
         <p>{{ len .Affiliations }} Verified Hospital(s)</p>
@@ -84,3 +83,4 @@
   </div>
 </div>
 {{ end }}
+

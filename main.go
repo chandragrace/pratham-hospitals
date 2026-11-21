@@ -174,6 +174,7 @@ func initTemplates() (map[string]*template.Template, error) {
 	funcMap := template.FuncMap{
 		"add": func(a, b int) int { return a + b },
 		"sub": func(a, b int) int { return a - b },
+		"mul": func(a, b int) int { return a * b },
 	}
 
 	pages := []string{

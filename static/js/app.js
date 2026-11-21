@@ -118,3 +118,4 @@ function clearAllFilters() {
   url.search = '';
   window.location.href = url.pathname;
 }
+

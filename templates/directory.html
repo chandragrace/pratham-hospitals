@@ -39,10 +39,6 @@
         <span class="stat-number">{{ .Stats.network_count }}</span>
         <span class="stat-label">Network</span>
       </div>
-      <div class="stat-item">
-        <span class="stat-number">{{ .Stats.total_specializations }}</span>
-        <span class="stat-label">Specialties</span>
-      </div>
     </div>
   </div>
 </section>
@@ -106,8 +102,8 @@
               <span>Pratham</span>
             </label>
             <label class="checkbox-label">
-              <input type="checkbox" name="type" value="Pratham Neo" {{ if .HasType "Pratham Neo" }}checked{{ end }} onchange="this.form.submit()">
-              <span>Pratham Neo</span>
+              <input type="checkbox" name="type" value="Anchor" {{ if .HasType "Anchor" }}checked{{ end }} onchange="this.form.submit()">
+              <span>Anchor</span>
             </label>
             <label class="checkbox-label">
               <input type="checkbox" name="type" value="Network" {{ if .HasType "Network" }}checked{{ end }} onchange="this.form.submit()">
@@ -115,8 +111,8 @@
             </label>
             {{ if .ShowBlockedSetting }}
             <label class="checkbox-label">
-              <input type="checkbox" name="type" value="Blocked" {{ if .HasType "Blocked" }}checked{{ end }} onchange="this.form.submit()">
-              <span>Blocked (Admin View)</span>
+              <input type="checkbox" name="type" value="Exclusion" {{ if .HasType "Exclusion" }}checked{{ end }} onchange="this.form.submit()">
+              <span>Exclusion (Admin View)</span>
             </label>
             {{ end }}
           </div>
@@ -202,7 +198,7 @@
           <label for="sort-by" style="color: var(--neutral-muted); font-weight: 600;">Sort By:</label>
           <select id="sort-by" class="filter-select" style="width: auto; padding: 0.35rem 0.65rem;" onchange="window.location.href = updateQueryString('sort_by', this.value)">
             <option value="name" {{ if eq .Params.SortBy "name" }}selected{{ end }}>Hospital Name (A-Z)</option>
-            <option value="sno" {{ if eq .Params.SortBy "sno" }}selected{{ end }}>Source S.NO</option>
+            <option value="sno" {{ if eq .Params.SortBy "sno" }}selected{{ end }}>Default Order</option>
             <option value="location" {{ if eq .Params.SortBy "location" }}selected{{ end }}>Location</option>
             <option value="district" {{ if eq .Params.SortBy "district" }}selected{{ end }}>District</option>
             <option value="type" {{ if eq .Params.SortBy "type" }}selected{{ end }}>Type</option>
@@ -216,7 +212,7 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th style="width: 60px;">S.NO</th>
+                <th style="width: 50px;">#</th>
                 <th>Hospital Name</th>
                 <th>Location / Area</th>
                 <th>District</th>
@@ -237,44 +233,45 @@
                   </td>
                 </tr>
               {{ else }}
-                {{ range .Result.Hospitals }}
-                  <tr class="clickable-row" data-href="/hospital/{{ .ID }}">
+                {{ $offset := mul (sub .Result.Page 1) 20 }}
+              {{ range $i, $h := .Result.Hospitals }}
+                  <tr class="clickable-row" data-href="/hospital/{{ $h.ID }}">
                     <td style="font-weight: 600; color: var(--neutral-muted);">
-                      {{ if .SourceSno }}{{ .SourceSno }}{{ else }}—{{ end }}
+                      {{ add $offset (add $i 1) }}
                     </td>
                     <td>
-                      <a href="/hospital/{{ .ID }}" style="font-weight: 700; font-size: 0.95rem; color: var(--primary-blue);">
-                        {{ .HospitalName }}
+                      <a href="/hospital/{{ $h.ID }}" style="font-weight: 700; font-size: 0.95rem; color: var(--primary-blue);">
+                        {{ $h.HospitalName }}
                       </a>
                     </td>
-                    <td>{{ if .Location }}{{ .Location }}{{ else }}—{{ end }}</td>
-                    <td>{{ if .District }}{{ .District }}{{ else }}—{{ end }}</td>
-                    <td>{{ if .State }}{{ .State }}{{ else }}—{{ end }}</td>
+                    <td>{{ if $h.Location }}{{ $h.Location }}{{ else }}—{{ end }}</td>
+                    <td>{{ if $h.District }}{{ $h.District }}{{ else }}—{{ end }}</td>
+                    <td>{{ if $h.State }}{{ $h.State }}{{ else }}—{{ end }}</td>
                     <td>
-                      {{ if eq .Type "Pratham" }}
+                      {{ if eq $h.Type "Pratham" }}
                         <span class="badge badge-pratham">Pratham</span>
-                      {{ else if eq .Type "Pratham Neo" }}
-                        <span class="badge badge-pratham-neo">Pratham Neo</span>
-                      {{ else if eq .Type "Network" }}
+                      {{ else if eq $h.Type "Anchor" }}
+                        <span class="badge badge-pratham-neo">Anchor</span>
+                      {{ else if eq $h.Type "Network" }}
                         <span class="badge badge-network">Network</span>
-                      {{ else if eq .Type "Blocked" }}
-                        <span class="badge badge-blocked">Blocked</span>
+                      {{ else if eq $h.Type "Exclusion" }}
+                        <span class="badge badge-blocked">Exclusion</span>
                       {{ else }}
-                        <span class="badge badge-gray">{{ .Type }}</span>
+                        <span class="badge badge-gray">{{ $h.Type }}</span>
                       {{ end }}
                     </td>
                     <td>
-                      {{ if gt .SpecialtyCount 0 }}
-                        <span class="badge badge-pratham" title="{{ range .SpecialtiesList }}{{ . }}, {{ end }}">
-                          {{ .SpecialtyCount }} Specialties
+                      {{ if gt $h.SpecialtyCount 0 }}
+                        <span class="badge badge-pratham" title="{{ range $h.SpecialtiesList }}{{ . }}, {{ end }}">
+                          {{ $h.SpecialtyCount }} Specialties
                         </span>
                       {{ else }}
                         <span style="color: #94A3B8; font-size: 0.8rem;">—</span>
                       {{ end }}
                     </td>
                     <td>
-                      {{ if gt .DoctorCount 0 }}
-                        <span class="badge badge-network">{{ .DoctorCount }} Doctors</span>
+                      {{ if gt $h.DoctorCount 0 }}
+                        <span class="badge badge-network">{{ $h.DoctorCount }} Doctors</span>
                       {{ else }}
                         <span style="color: #94A3B8; font-size: 0.8rem;">—</span>
                       {{ end }}
@@ -320,3 +317,4 @@ function updateQueryString(key, val) {
 }
 </script>
 {{ end }}
+

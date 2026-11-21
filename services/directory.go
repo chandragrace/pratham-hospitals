@@ -37,7 +37,7 @@ func (s *DirectoryService) SearchHospitals(params models.SearchFilterParams) (*m
 
 	// Blocked filter: default public search excludes Blocked unless explicitly requested
 	if !params.IncludeBlocked {
-		whereClauses = append(whereClauses, "h.type != 'Blocked'")
+		whereClauses = append(whereClauses, "h.type != 'Exclusion'")
 	}
 
 	// Text query search: matches hospital name, location, district, state, doctor name or specialty name
@@ -345,7 +345,7 @@ func (s *DirectoryService) GetGeographyHierarchy() ([]models.GeoCountItem, []mod
 		SELECT COALESCE(state, 'Unassigned'), COUNT(*),
 		       (SELECT COUNT(*) FROM hospital_doctors hd JOIN hospitals h2 ON hd.hospital_id = h2.id WHERE COALESCE(h2.state, 'Unassigned') = COALESCE(h.state, 'Unassigned'))
 		FROM hospitals h
-		WHERE h.status = 'active' AND h.type != 'Blocked'
+		WHERE h.status = 'active' AND h.type != 'Exclusion'
 		GROUP BY state
 		ORDER BY state ASC
 	`)
@@ -365,7 +365,7 @@ func (s *DirectoryService) GetGeographyHierarchy() ([]models.GeoCountItem, []mod
 		SELECT COALESCE(district, 'Unassigned'), COALESCE(state, ''), COUNT(*),
 		       (SELECT COUNT(*) FROM hospital_doctors hd JOIN hospitals h2 ON hd.hospital_id = h2.id WHERE COALESCE(h2.district, 'Unassigned') = COALESCE(h.district, 'Unassigned'))
 		FROM hospitals h
-		WHERE h.status = 'active' AND h.type != 'Blocked'
+		WHERE h.status = 'active' AND h.type != 'Exclusion'
 		GROUP BY district, state
 		ORDER BY district ASC
 	`)
@@ -385,7 +385,7 @@ func (s *DirectoryService) GetGeographyHierarchy() ([]models.GeoCountItem, []mod
 		SELECT COALESCE(location, 'Unassigned'), COALESCE(district, ''), COUNT(*),
 		       (SELECT COUNT(*) FROM hospital_doctors hd JOIN hospitals h2 ON hd.hospital_id = h2.id WHERE COALESCE(h2.location, 'Unassigned') = COALESCE(h.location, 'Unassigned'))
 		FROM hospitals h
-		WHERE h.status = 'active' AND h.type != 'Blocked'
+		WHERE h.status = 'active' AND h.type != 'Exclusion'
 		GROUP BY location, district
 		ORDER BY location ASC
 	`)
@@ -406,17 +406,17 @@ func (s *DirectoryService) GetGeographyHierarchy() ([]models.GeoCountItem, []mod
 func (s *DirectoryService) GetGlobalStats() (map[string]interface{}, error) {
 	stats := make(map[string]interface{})
 
-	var totalHospitals, prathamCount, prathamNeoCount, networkCount, blockedCount int
+	var totalHospitals, prathamCount, anchorCount, networkCount, exclusionCount int
 	err := s.db.QueryRow(`
 		SELECT 
 			COUNT(*),
 			COUNT(*) FILTER (WHERE type = 'Pratham'),
-			COUNT(*) FILTER (WHERE type = 'Pratham Neo'),
+			COUNT(*) FILTER (WHERE type = 'Anchor'),
 			COUNT(*) FILTER (WHERE type = 'Network'),
-			COUNT(*) FILTER (WHERE type = 'Blocked')
+			COUNT(*) FILTER (WHERE type = 'Exclusion')
 		FROM hospitals
 		WHERE status = 'active'
-	`).Scan(&totalHospitals, &prathamCount, &prathamNeoCount, &networkCount, &blockedCount)
+	`).Scan(&totalHospitals, &prathamCount, &anchorCount, &networkCount, &exclusionCount)
 	if err != nil {
 		return nil, err
 	}
@@ -446,9 +446,9 @@ func (s *DirectoryService) GetGlobalStats() (map[string]interface{}, error) {
 
 	stats["total_hospitals"] = totalHospitals
 	stats["pratham_count"] = prathamCount
-	stats["pratham_neo_count"] = prathamNeoCount
+	stats["pratham_neo_count"] = anchorCount
 	stats["network_count"] = networkCount
-	stats["blocked_count"] = blockedCount
+	stats["blocked_count"] = exclusionCount
 	stats["total_specializations"] = totalSpecializations
 	stats["total_doctors"] = totalDoctors
 	stats["unassigned_doctors"] = unassignedDoctors
@@ -489,3 +489,4 @@ func (s *DirectoryService) GetAllSpecializations() ([]models.Specialization, err
 	}
 	return res, nil
 }
+

@@ -223,7 +223,7 @@ func (h *AdminHandler) HospitalToggleBlockHandler(w http.ResponseWriter, r *http
 	id := r.URL.Query().Get("id")
 	action := r.URL.Query().Get("action")
 
-	newType := "Blocked"
+	newType := "Exclusion"
 	if action == "unblock" {
 		newType = "Pratham"
 	}

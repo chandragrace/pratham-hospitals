@@ -8,6 +8,10 @@
       </p>
     </div>
     <div style="display: flex; gap: 0.75rem;">
+      <a onclick="history.back(); return false;" href="/admin/dashboard" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Back
+      </a>
       <a href="/admin/import/master" class="btn btn-secondary">Upload Excel</a>
       <button onclick="document.getElementById('add-modal').style.display='flex'" class="btn btn-primary">
         + Add New Hospital
@@ -26,9 +30,9 @@
       <select name="type" class="filter-select" style="width: auto;">
         <option value="">All Categories</option>
         <option value="Pratham" {{ if eq .Type "Pratham" }}selected{{ end }}>Pratham</option>
-        <option value="Pratham Neo" {{ if eq .Type "Pratham Neo" }}selected{{ end }}>Pratham Neo</option>
+        <option value="Anchor" {{ if eq .Type "Anchor" }}selected{{ end }}>Anchor</option>
         <option value="Network" {{ if eq .Type "Network" }}selected{{ end }}>Network</option>
-        <option value="Blocked" {{ if eq .Type "Blocked" }}selected{{ end }}>Blocked</option>
+        <option value="Exclusion" {{ if eq .Type "Exclusion" }}selected{{ end }}>Exclusion</option>
       </select>
       <button type="submit" class="btn btn-primary">Filter</button>
       <a href="/admin/hospitals" class="btn btn-secondary">Reset</a>
@@ -65,12 +69,12 @@
               <td>
                 {{ if eq .Type "Pratham" }}
                   <span class="badge badge-pratham">Pratham</span>
-                {{ else if eq .Type "Pratham Neo" }}
-                  <span class="badge badge-pratham-neo">Pratham Neo</span>
+                {{ else if eq .Type "Anchor" }}
+                  <span class="badge badge-pratham-neo">Anchor</span>
                 {{ else if eq .Type "Network" }}
                   <span class="badge badge-network">Network</span>
-                {{ else if eq .Type "Blocked" }}
-                  <span class="badge badge-blocked">Blocked</span>
+                {{ else if eq .Type "Exclusion" }}
+                  <span class="badge badge-blocked">Exclusion</span>
                 {{ else }}
                   <span class="badge badge-gray">{{ .Type }}</span>
                 {{ end }}
@@ -82,13 +86,13 @@
                   <button onclick="openEditModal('{{ .ID }}', '{{ .HospitalName }}', '{{ if .SourceSno }}{{ .SourceSno }}{{ end }}', '{{ if .Location }}{{ .Location }}{{ end }}', '{{ if .District }}{{ .District }}{{ end }}', '{{ if .State }}{{ .State }}{{ end }}', '{{ .Type }}')" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
                     Edit
                   </button>
-                  {{ if eq .Type "Blocked" }}
+                  {{ if eq .Type "Exclusion" }}
                     <a href="/admin/hospitals/toggle-block?id={{ .ID }}&action=unblock" class="btn btn-success" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
-                      Unblock
+                      Un-Exclude
                     </a>
                   {{ else }}
                     <a href="/admin/hospitals/toggle-block?id={{ .ID }}&action=block" class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
-                      Block
+                      Exclude
                     </a>
                   {{ end }}
                 </div>
@@ -130,9 +134,9 @@
         <label class="filter-label">Canonical Category *</label>
         <select name="type" class="filter-select" required>
           <option value="Pratham">Pratham</option>
-          <option value="Pratham Neo">Pratham Neo</option>
+          <option value="Anchor">Anchor</option>
           <option value="Network">Network</option>
-          <option value="Blocked">Blocked</option>
+          <option value="Exclusion">Exclusion</option>
         </select>
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
@@ -173,9 +177,9 @@
         <label class="filter-label">Canonical Category *</label>
         <select name="type" id="edit-type" class="filter-select" required>
           <option value="Pratham">Pratham</option>
-          <option value="Pratham Neo">Pratham Neo</option>
+          <option value="Anchor">Anchor</option>
           <option value="Network">Network</option>
-          <option value="Blocked">Blocked</option>
+          <option value="Exclusion">Exclusion</option>
         </select>
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
@@ -199,3 +203,4 @@ function openEditModal(id, name, sno, loc, dist, state, type) {
 }
 </script>
 {{ end }}
+

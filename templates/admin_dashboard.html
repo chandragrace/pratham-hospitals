@@ -7,6 +7,10 @@
       <p style="color: var(--neutral-muted); font-size: 0.9rem;">Manage directory database, perform two-stage Excel imports, and configure custom fields.</p>
     </div>
     <div style="display: flex; gap: 0.75rem;">
+      <a href="/" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to Directory
+      </a>
       <a href="/admin/import/master" class="btn btn-primary">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         1. Hospital Master Upload
@@ -43,7 +47,7 @@
 
     <!-- Network & Blocked -->
     <div class="detail-card" style="margin-bottom: 0; padding: 1.25rem;">
-      <span style="font-size: 0.75rem; font-weight: 700; color: var(--neutral-muted); text-transform: uppercase;">Network & Blocked</span>
+      <span style="font-size: 0.75rem; font-weight: 700; color: var(--neutral-muted); text-transform: uppercase;">Network & Exclusion</span>
       <div style="display: flex; gap: 1.5rem; align-items: baseline; margin-top: 0.25rem;">
         <div>
           <span style="font-size: 1.75rem; font-weight: 800; color: #4338CA;">{{ .Stats.network_count }}</span>
@@ -51,7 +55,7 @@
         </div>
         <div>
           <span style="font-size: 1.75rem; font-weight: 800; color: #DC2626;">{{ .Stats.blocked_count }}</span>
-          <span style="font-size: 0.75rem; color: var(--neutral-muted); display: block;">Blocked</span>
+          <span style="font-size: 0.75rem; color: var(--neutral-muted); display: block;">Exclusion</span>
         </div>
       </div>
     </div>
@@ -190,3 +194,4 @@
   </div>
 </div>
 {{ end }}
+

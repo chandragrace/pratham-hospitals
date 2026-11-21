@@ -101,3 +101,4 @@ func seedCustomFields(db *sql.DB) {
 		}
 	}
 }
+

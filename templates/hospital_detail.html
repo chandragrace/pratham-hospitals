@@ -27,12 +27,12 @@
           <h1>{{ .Hospital.HospitalName }}</h1>
           {{ if eq .Hospital.Type "Pratham" }}
             <span class="badge badge-pratham" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">Pratham</span>
-          {{ else if eq .Hospital.Type "Pratham Neo" }}
-            <span class="badge badge-pratham-neo" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">Pratham Neo</span>
+          {{ else if eq .Hospital.Type "Anchor" }}
+            <span class="badge badge-pratham-neo" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">Anchor</span>
           {{ else if eq .Hospital.Type "Network" }}
             <span class="badge badge-network" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">Network</span>
-          {{ else if eq .Hospital.Type "Blocked" }}
-            <span class="badge badge-blocked" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">Blocked</span>
+          {{ else if eq .Hospital.Type "Exclusion" }}
+            <span class="badge badge-blocked" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">Exclusion</span>
           {{ else }}
             <span class="badge badge-gray" style="font-size: 0.85rem; padding: 0.3rem 0.85rem;">{{ .Hospital.Type }}</span>
           {{ end }}
@@ -44,23 +44,15 @@
       </div>
 
       <div>
-        <a href="/" class="btn btn-secondary">
+        <a onclick="history.back(); return false;" href="/" class="btn btn-secondary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-          Back to Directory
+          Back
         </a>
       </div>
     </div>
 
     <!-- Metadata Grid -->
     <div class="info-grid">
-      <div class="info-item">
-        <label>Hospital ID</label>
-        <p style="font-family: monospace; font-size: 0.85rem; color: var(--neutral-muted);">{{ .Hospital.ID }}</p>
-      </div>
-      <div class="info-item">
-        <label>Source Serial No (S.NO)</label>
-        <p>{{ if .Hospital.SourceSno }}{{ .Hospital.SourceSno }}{{ else }}—{{ end }}</p>
-      </div>
       <div class="info-item">
         <label>Location / Area</label>
         <p>{{ if .Hospital.Location }}{{ .Hospital.Location }}{{ else }}—{{ end }}</p>
@@ -185,3 +177,4 @@
   </div>
 </div>
 {{ end }}
+

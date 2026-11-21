@@ -186,3 +186,4 @@ VALUES
 ('site_title', 'Pratham Hospital Directory', 'Public Directory title'),
 ('contact_email', 'admin@pratham-hospitals.marketrates.in', 'Support and contact email')
 ON CONFLICT (key) DO NOTHING;
+
