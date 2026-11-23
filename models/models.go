@@ -21,10 +21,19 @@ type Hospital struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 
 	// Aggregated fields for listings
-	SpecialtyCount   int       `json:"specialty_count"`
-	DoctorCount      int       `json:"doctor_count"`
-	SpecialtiesList  []string  `json:"specialties_list,omitempty"`
-	CustomFields     map[string]string `json:"custom_fields,omitempty"`
+	SpecialtyCount   int                  `json:"specialty_count"`
+	DoctorCount      int                  `json:"doctor_count"`
+	SpecialtiesList  []string             `json:"specialties_list,omitempty"`
+	DoctorsList      []HospitalDoctorItem `json:"doctors_list,omitempty"`
+	CustomFields     map[string]string    `json:"custom_fields,omitempty"`
+}
+
+// HospitalDoctorItem represents a doctor affiliated with a hospital in listings
+type HospitalDoctorItem struct {
+	DoctorID       string   `json:"doctor_id"`
+	DisplayName    string   `json:"display_name"`
+	Qualifications string   `json:"qualifications,omitempty"`
+	Specialties    []string `json:"specialties,omitempty"`
 }
 
 // Specialization represents a canonical medical specialty

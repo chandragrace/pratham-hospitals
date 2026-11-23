@@ -1299,3 +1299,344 @@ html, body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ==========================================================================
+   COMPACT EXPANDABLE HOSPITAL DIRECTORY CARDS (Mobile-First & Desktop)
+   ========================================================================== */
+
+.hosp-directory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.hosp-directory-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease-in-out;
+  overflow: hidden;
+}
+
+.hosp-directory-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.07);
+}
+
+.hosp-directory-card.expanded {
+  border-color: var(--primary-blue);
+  box-shadow: 0 4px 14px rgba(55, 94, 188, 0.12);
+}
+
+/* Compact Row (Default Collapsed View) */
+.hosp-compact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  gap: 0.75rem;
+  transition: background 0.15s ease;
+}
+
+.hosp-compact-row:hover {
+  background: #F8FAFC;
+}
+
+.hosp-directory-card.expanded .hosp-compact-row {
+  background: #F1F5F9;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hosp-info-primary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.hosp-name-type-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.6rem;
+}
+
+.hosp-index-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--neutral-muted);
+  min-width: 1.8rem;
+}
+
+.hosp-name-text {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dark-navy);
+  text-decoration: none;
+  line-height: 1.3;
+  transition: color 0.15s ease;
+}
+
+.hosp-name-text:hover {
+  color: var(--primary-blue);
+  text-decoration: underline;
+}
+
+.hosp-location-line {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: #64748B;
+}
+
+.hosp-loc-pin {
+  flex-shrink: 0;
+  stroke: #94A3B8;
+}
+
+/* ⓘ Info Button (Extreme Right) */
+.hosp-info-toggle-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  border: 1.5px solid #CBD5E1;
+  background: #FFFFFF;
+  color: var(--primary-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.hosp-info-toggle-btn:hover {
+  background: var(--light-blue);
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+  transform: scale(1.06);
+}
+
+.hosp-directory-card.expanded .hosp-info-toggle-btn {
+  background: var(--primary-blue);
+  border-color: var(--primary-blue);
+  color: #FFFFFF;
+}
+
+.info-icon-char {
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Expandable Details Pane */
+.hosp-details-pane {
+  animation: expandFadeIn 0.22s ease-out;
+  background: #FFFFFF;
+}
+
+@keyframes expandFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hosp-details-inner {
+  padding: 1.15rem 1.25rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  background: #FAFAFC;
+}
+
+.hosp-details-block {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1rem;
+}
+
+.details-section-heading {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--dark-navy);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.65rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.details-section-heading svg {
+  color: var(--primary-blue);
+}
+
+.details-info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.details-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--neutral-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.details-value {
+  font-size: 0.88rem;
+  color: #334155;
+  margin: 0.15rem 0 0 0;
+  line-height: 1.4;
+}
+
+.details-meta-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem 1rem;
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border-color);
+  font-size: 0.82rem;
+}
+
+/* Specialties Chips */
+.details-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.spec-tag-chip {
+  background: #EEF2FF;
+  color: #375EBC;
+  border: 1px solid #C7D2FE;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.spec-tag-chip:hover {
+  background: #375EBC;
+  color: #FFFFFF;
+  border-color: #375EBC;
+}
+
+/* Doctors List */
+.details-doctors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.details-doc-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.5rem 0.65rem;
+  background: #F8FAFC;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.doc-icon-circle {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.doc-details-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-name-qual-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.doc-profile-link {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  text-decoration: none;
+}
+
+.doc-profile-link:hover {
+  text-decoration: underline;
+}
+
+.doc-specs-line {
+  font-size: 0.78rem;
+  color: var(--neutral-muted);
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.details-muted-note {
+  font-size: 0.82rem;
+  color: var(--neutral-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+.hosp-details-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Mobile Responsiveness for Compact Cards */
+@media (max-width: 640px) {
+  .hosp-compact-row {
+    padding: 0.75rem 0.85rem;
+    gap: 0.5rem;
+  }
+  .hosp-name-text {
+    font-size: 0.92rem;
+  }
+  .hosp-location-line {
+    font-size: 0.78rem;
+  }
+  .hosp-info-toggle-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+  .hosp-details-inner {
+    padding: 0.85rem;
+    gap: 0.75rem;
+  }
+  .hosp-details-block {
+    padding: 0.75rem;
+  }
+  .details-meta-row {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+  .hosp-details-footer a {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+}
+

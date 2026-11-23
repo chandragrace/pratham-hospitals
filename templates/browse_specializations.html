@@ -537,32 +537,106 @@
             </div>
           {{ end }}
 
-          <!-- List View for Hospitals -->
+          <!-- List View for Hospitals (Compact Expandable Directory Cards) -->
           {{ if eq .Result.View "list" }}
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-              {{ range .Result.Hospitals }}
-                <div class="detail-card" style="padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                  <div style="max-width: 700px;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                      <h3 style="font-size: 1.15rem; font-weight: 700;">
-                        <a href="/hospital/{{ .ID }}" style="color: var(--primary-blue);">{{ .HospitalName }}</a>
-                      </h3>
-                      {{ if eq .Type "Pratham" }}<span class="badge badge-pratham">Pratham</span>
-                      {{ else if eq .Type "Anchor" }}<span class="badge badge-anchor">Anchor</span>
-                      {{ else if eq .Type "Network" }}<span class="badge badge-network">Network</span>
-                      {{ else }}<span class="badge badge-exclusion">{{ .Type }}</span>{{ end }}
+            <div class="hosp-directory-list">
+              {{ range $i, $h := .Result.Hospitals }}
+                <div class="hosp-directory-card" id="hosp-card-{{ $h.ID }}">
+                  <!-- Compact Collapsed Summary Row -->
+                  <div class="hosp-compact-row" onclick="toggleHospitalExpand('{{ $h.ID }}')">
+                    <div class="hosp-info-primary">
+                      <div class="hosp-name-type-line">
+                        <a href="/hospital/{{ $h.ID }}" class="hosp-name-text" onclick="event.stopPropagation()">{{ $h.HospitalName }}</a>
+                        {{ if eq $h.Type "Pratham" }}
+                          <span class="badge badge-pratham">Pratham</span>
+                        {{ else if eq $h.Type "Anchor" }}
+                          <span class="badge badge-pratham-neo">Anchor</span>
+                        {{ else if eq $h.Type "Network" }}
+                          <span class="badge badge-network">Network</span>
+                        {{ else if eq $h.Type "Exclusion" }}
+                          <span class="badge badge-blocked">Exclusion</span>
+                        {{ else }}
+                          <span class="badge badge-gray">{{ $h.Type }}</span>
+                        {{ end }}
+                      </div>
+                      <div class="hosp-location-line">
+                        <svg class="hosp-loc-pin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span>{{ if $h.Location }}{{ $h.Location }}{{ end }}{{ if and $h.Location $h.District }}, {{ end }}{{ if $h.District }}{{ $h.District }}{{ end }}{{ if $h.State }} • {{ $h.State }}{{ end }}</span>
+                      </div>
                     </div>
-                    <p style="font-size: 0.85rem; color: var(--neutral-muted); margin-bottom: 0.4rem;">
-                      📍 {{ if .Location }}{{ .Location }}, {{ end }}{{ if .District }}{{ .District }}, {{ end }}{{ if .State }}{{ .State }}{{ end }}
-                    </p>
-                    {{ if .Address }}<p style="font-size: 0.8rem; color: #475569; margin-bottom: 0.4rem;">{{ .Address }}</p>{{ end }}
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                      <span class="badge badge-pratham" style="font-size: 0.75rem;">{{ .SpecialtyCount }} Specialties</span>
-                      <span class="badge badge-anchor" style="font-size: 0.75rem;">{{ .DoctorCount }} Specialist Doctors</span>
-                    </div>
+
+                    <!-- ⓘ Info Button (Extreme Right) -->
+                    <button type="button" class="hosp-info-toggle-btn" id="info-btn-{{ $h.ID }}" aria-expanded="false" aria-controls="hosp-details-{{ $h.ID }}" aria-label="Toggle details for {{ $h.HospitalName }}" onclick="event.stopPropagation(); toggleHospitalExpand('{{ $h.ID }}')" title="Show hospital details">
+                      <span class="info-icon-char">ⓘ</span>
+                    </button>
                   </div>
-                  <div>
-                    <a href="/hospital/{{ .ID }}" class="btn btn-primary" style="font-size: 0.8rem;">View Hospital Details</a>
+
+                  <!-- Expandable Details Section (Default Collapsed) -->
+                  <div class="hosp-details-pane" id="hosp-details-{{ $h.ID }}" style="display: none;">
+                    <div class="hosp-details-inner">
+                      <!-- Hospital Information -->
+                      <div class="hosp-details-block">
+                        <h4 class="details-section-heading">Hospital Information</h4>
+                        <div class="details-info-grid">
+                          <div>
+                            <span class="details-label">Full Address:</span>
+                            <p class="details-value">{{ if $h.Address }}{{ $h.Address }}{{ else }}Address recorded under {{ if $h.Location }}{{ $h.Location }}, {{ end }}{{ if $h.District }}{{ $h.District }}{{ end }}.{{ end }}</p>
+                          </div>
+                          <div class="details-meta-row">
+                            <div><span class="details-label">Location:</span> <span class="details-value">{{ if $h.Location }}{{ $h.Location }}{{ else }}—{{ end }}</span></div>
+                            <div><span class="details-label">District:</span> <span class="details-value">{{ if $h.District }}{{ $h.District }}{{ else }}—{{ end }}</span></div>
+                            <div><span class="details-label">State:</span> <span class="details-value">{{ if $h.State }}{{ $h.State }}{{ else }}—{{ end }}</span></div>
+                            <div><span class="details-label">Classification:</span> <span class="details-value"><strong>{{ $h.Type }}</strong></span></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Medical Specialties -->
+                      <div class="hosp-details-block">
+                        <h4 class="details-section-heading">Medical Specialties ({{ $h.SpecialtyCount }})</h4>
+                        {{ if gt (len $h.SpecialtiesList) 0 }}
+                          <div class="details-chips-wrap">
+                            {{ range $h.SpecialtiesList }}
+                              <a href="/browse/specializations?tab=hospitals&specialization={{ . }}" class="spec-tag-chip" onclick="event.stopPropagation()">{{ . }}</a>
+                            {{ end }}
+                          </div>
+                        {{ else }}
+                          <p class="details-muted-note">No specific specialties cataloged for this healthcare center.</p>
+                        {{ end }}
+                      </div>
+
+                      <!-- Affiliated Doctors -->
+                      <div class="hosp-details-block">
+                        <h4 class="details-section-heading">Doctors & Specialists ({{ $h.DoctorCount }})</h4>
+                        {{ if gt (len $h.DoctorsList) 0 }}
+                          <div class="details-doctors-list">
+                            {{ range $h.DoctorsList }}
+                              <div class="details-doc-item">
+                                <div class="doc-icon-circle">👨‍⚕️</div>
+                                <div class="doc-details-text">
+                                  <div class="doc-name-qual-line">
+                                    <a href="/doctor/{{ .DoctorID }}" class="doc-profile-link" onclick="event.stopPropagation()">{{ .DisplayName }}</a>
+                                    {{ if .Qualifications }}<span class="badge badge-pratham" style="font-size: 0.7rem; padding: 1px 5px;">{{ .Qualifications }}</span>{{ end }}
+                                  </div>
+                                  {{ if .Specialties }}
+                                    <span class="doc-specs-line">{{ range $di, $s := .Specialties }}{{ if $di }}, {{ end }}{{ $s }}{{ end }}</span>
+                                  {{ end }}
+                                </div>
+                              </div>
+                            {{ end }}
+                          </div>
+                        {{ else }}
+                          <p class="details-muted-note">Doctor affiliations can be reviewed on the full hospital profile page.</p>
+                        {{ end }}
+                      </div>
+
+                      <!-- Action Link -->
+                      <div class="hosp-details-footer">
+                        <a href="/hospital/{{ $h.ID }}" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.45rem 1rem;">
+                          View Full Hospital Profile & Departments →
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 </div>
               {{ end }}

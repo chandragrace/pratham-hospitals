@@ -225,61 +225,56 @@
           Showing {{ .Result.TotalCount }} Hospitals Found
         </h2>
 
-        <!-- Sort Control -->
-        <div class="sort-controls">
-          <label for="sort-by" style="color: var(--neutral-muted); font-weight: 600;">Sort By:</label>
-          <select id="sort-by" class="filter-select" style="width: auto; padding: 0.35rem 0.65rem;" onchange="window.location.href = updateQueryString('sort_by', this.value)">
-            <option value="name" {{ if eq .Params.SortBy "name" }}selected{{ end }}>Hospital Name (A-Z)</option>
-            <option value="sno" {{ if eq .Params.SortBy "sno" }}selected{{ end }}>Default Order</option>
-            <option value="location" {{ if eq .Params.SortBy "location" }}selected{{ end }}>Location</option>
-            <option value="district" {{ if eq .Params.SortBy "district" }}selected{{ end }}>District</option>
-            <option value="type" {{ if eq .Params.SortBy "type" }}selected{{ end }}>Type</option>
-          </select>
+        <!-- View Mode & Sort Controls -->
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <!-- View Mode Switcher -->
+          <div class="listing-view-toggle" style="display: flex; border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow: hidden; background: #FFF;">
+            <button type="button" id="btn-view-cards" class="view-mode-btn active" onclick="switchListingView('cards')" title="Compact Expandable Directory View" style="padding: 0.35rem 0.65rem; border: none; background: var(--primary-blue); color: #FFF; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              <span>Directory</span>
+            </button>
+            <button type="button" id="btn-view-table" class="view-mode-btn desktop-only" onclick="switchListingView('table')" title="Tabular View" style="padding: 0.35rem 0.65rem; border: none; background: #FFF; color: var(--neutral-muted); font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              <span>Table</span>
+            </button>
+          </div>
+
+          <!-- Sort Control -->
+          <div class="sort-controls">
+            <label for="sort-by" style="color: var(--neutral-muted); font-weight: 600;">Sort By:</label>
+            <select id="sort-by" class="filter-select" style="width: auto; padding: 0.35rem 0.65rem;" onchange="window.location.href = updateQueryString('sort_by', this.value)">
+              <option value="name" {{ if eq .Params.SortBy "name" }}selected{{ end }}>Hospital Name (A-Z)</option>
+              <option value="sno" {{ if eq .Params.SortBy "sno" }}selected{{ end }}>Default Order</option>
+              <option value="location" {{ if eq .Params.SortBy "location" }}selected{{ end }}>Location</option>
+              <option value="district" {{ if eq .Params.SortBy "district" }}selected{{ end }}>District</option>
+              <option value="type" {{ if eq .Params.SortBy "type" }}selected{{ end }}>Type</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <!-- Spreadsheet-Style Results Table (Desktop/Tablet) -->
-      <div class="table-card">
-        <div class="table-responsive table-desktop-view">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th style="width: 50px;">#</th>
-                <th>Hospital Name</th>
-                <th>Location / Area</th>
-                <th>District</th>
-                <th>State</th>
-                <th>Type</th>
-                <th>Specialties</th>
-                <th>Doctors</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{ if eq (len .Result.Hospitals) 0 }}
-                <tr>
-                  <td colspan="8" style="text-align: center; padding: 3rem 1rem;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" style="margin-bottom: 0.5rem;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <h3 style="font-size: 1.1rem; color: var(--neutral-dark);">No Hospitals Found</h3>
-                    <p style="color: var(--neutral-muted); font-size: 0.875rem; margin-top: 0.25rem;">Try adjusting or clearing your filters to see more results.</p>
-                    <button class="btn btn-secondary" onclick="clearAllFilters()" style="margin-top: 1rem;">Reset All Filters</button>
-                  </td>
-                </tr>
-              {{ else }}
-                {{ $offset := mul (sub .Result.Page 1) 20 }}
-              {{ range $i, $h := .Result.Hospitals }}
-                  <tr class="clickable-row" data-href="/hospital/{{ $h.ID }}">
-                    <td style="font-weight: 600; color: var(--neutral-muted);">
-                      {{ add $offset (add $i 1) }}
-                    </td>
-                    <td>
-                      <a href="/hospital/{{ $h.ID }}" style="font-weight: 700; font-size: 0.95rem; color: var(--primary-blue);">
-                        {{ $h.HospitalName }}
-                      </a>
-                    </td>
-                    <td>{{ if $h.Location }}{{ $h.Location }}{{ else }}—{{ end }}</td>
-                    <td>{{ if $h.District }}{{ $h.District }}{{ else }}—{{ end }}</td>
-                    <td>{{ if $h.State }}{{ $h.State }}{{ else }}—{{ end }}</td>
-                    <td>
+      <!-- MAIN RESULTS CONTAINER -->
+      <div id="results-container">
+        {{ if eq (len .Result.Hospitals) 0 }}
+          <div class="table-card" style="text-align: center; padding: 3rem 1rem;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" style="margin-bottom: 0.5rem;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <h3 style="font-size: 1.1rem; color: var(--neutral-dark);">No Hospitals Found</h3>
+            <p style="color: var(--neutral-muted); font-size: 0.875rem; margin-top: 0.25rem;">Try adjusting or clearing your filters to see more results.</p>
+            <button class="btn btn-secondary" onclick="clearAllFilters()" style="margin-top: 1rem;">Reset All Filters</button>
+          </div>
+        {{ else }}
+          {{ $offset := mul (sub .Result.Page 1) 20 }}
+
+          <!-- 1. COMPACT EXPANDABLE HOSPITAL DIRECTORY LIST (Default on Mobile, Tablet & Desktop) -->
+          <div class="hosp-directory-list" id="hosp-directory-view">
+            {{ range $i, $h := .Result.Hospitals }}
+              <div class="hosp-directory-card" id="hosp-card-{{ $h.ID }}">
+                <!-- Compact Collapsed Summary Row -->
+                <div class="hosp-compact-row" onclick="toggleHospitalExpand('{{ $h.ID }}')">
+                  <div class="hosp-info-primary">
+                    <div class="hosp-name-type-line">
+                      <span class="hosp-index-num">#{{ add $offset (add $i 1) }}</span>
+                      <a href="/hospital/{{ $h.ID }}" class="hosp-name-text" onclick="event.stopPropagation()">{{ $h.HospitalName }}</a>
                       {{ if eq $h.Type "Pratham" }}
                         <span class="badge badge-pratham">Pratham</span>
                       {{ else if eq $h.Type "Anchor" }}
@@ -291,94 +286,169 @@
                       {{ else }}
                         <span class="badge badge-gray">{{ $h.Type }}</span>
                       {{ end }}
-                    </td>
-                    <td>
-                      {{ if gt $h.SpecialtyCount 0 }}
-                        <span class="badge badge-pratham" title="{{ range $h.SpecialtiesList }}{{ . }}, {{ end }}">
-                          {{ $h.SpecialtyCount }} Specialties
-                        </span>
-                      {{ else }}
-                        <span style="color: #94A3B8; font-size: 0.8rem;">—</span>
-                      {{ end }}
-                    </td>
-                    <td>
-                      {{ if gt $h.DoctorCount 0 }}
-                        <span class="badge badge-network">{{ $h.DoctorCount }} Doctors</span>
-                      {{ else }}
-                        <span style="color: #94A3B8; font-size: 0.8rem;">—</span>
-                      {{ end }}
-                    </td>
-                  </tr>
-                {{ end }}
-              {{ end }}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Mobile Hospital Cards View (Phones < 768px) -->
-        <div class="mobile-cards-view">
-          {{ if eq (len .Result.Hospitals) 0 }}
-            <div style="text-align: center; padding: 2rem 1rem;">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <h3 style="font-size: 1rem; color: var(--neutral-dark); margin-top: 0.5rem;">No Hospitals Found</h3>
-              <p style="color: var(--neutral-muted); font-size: 0.8rem; margin-top: 0.25rem;">Try adjusting or clearing your filters.</p>
-              <button class="btn btn-secondary" onclick="clearAllFilters()" style="margin-top: 0.75rem; font-size: 0.8rem;">Reset All Filters</button>
-            </div>
-          {{ else }}
-            {{ $offset := mul (sub .Result.Page 1) 20 }}
-            {{ range $i, $h := .Result.Hospitals }}
-              <div class="mobile-hospital-card">
-                <div class="mobile-card-header">
-                  <div style="display: flex; gap: 0.4rem; align-items: flex-start;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--neutral-muted); background: #F1F5F9; border-radius: 4px; padding: 2px 6px;">#{{ add $offset (add $i 1) }}</span>
-                    <a href="/hospital/{{ $h.ID }}" class="mobile-hospital-title">
-                      {{ $h.HospitalName }}
-                    </a>
+                    </div>
+                    <div class="hosp-location-line">
+                      <svg class="hosp-loc-pin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <span>{{ if $h.Location }}{{ $h.Location }}{{ end }}{{ if and $h.Location $h.District }}, {{ end }}{{ if $h.District }}{{ $h.District }}{{ end }}{{ if $h.State }} • {{ $h.State }}{{ end }}</span>
+                    </div>
                   </div>
-                  {{ if eq $h.Type "Pratham" }}
-                    <span class="badge badge-pratham">Pratham</span>
-                  {{ else if eq $h.Type "Anchor" }}
-                    <span class="badge badge-pratham-neo">Anchor</span>
-                  {{ else if eq $h.Type "Network" }}
-                    <span class="badge badge-network">Network</span>
-                  {{ else if eq $h.Type "Exclusion" }}
-                    <span class="badge badge-blocked">Exclusion</span>
-                  {{ else }}
-                    <span class="badge badge-gray">{{ $h.Type }}</span>
-                  {{ end }}
+
+                  <!-- ⓘ Info Button (Extreme Right) -->
+                  <button type="button" class="hosp-info-toggle-btn" id="info-btn-{{ $h.ID }}" aria-expanded="false" aria-controls="hosp-details-{{ $h.ID }}" aria-label="Toggle details for {{ $h.HospitalName }}" onclick="event.stopPropagation(); toggleHospitalExpand('{{ $h.ID }}')" title="Show hospital details">
+                    <span class="info-icon-char">ⓘ</span>
+                  </button>
                 </div>
 
-                <div class="mobile-hospital-geo">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                  <span>{{ if $h.Location }}{{ $h.Location }}{{ end }}{{ if and $h.Location $h.District }}, {{ end }}{{ if $h.District }}{{ $h.District }}{{ end }}{{ if $h.State }} • {{ $h.State }}{{ end }}</span>
-                </div>
+                <!-- Expandable Details Section (Default Collapsed) -->
+                <div class="hosp-details-pane" id="hosp-details-{{ $h.ID }}" style="display: none;">
+                  <div class="hosp-details-inner">
+                    <!-- A. Hospital Information -->
+                    <div class="hosp-details-block">
+                      <h4 class="details-section-heading">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                        Hospital Information
+                      </h4>
+                      <div class="details-info-grid">
+                        <div>
+                          <span class="details-label">Full Address:</span>
+                          <p class="details-value">{{ if $h.Address }}{{ $h.Address }}{{ else }}Address recorded under {{ if $h.Location }}{{ $h.Location }}, {{ end }}{{ if $h.District }}{{ $h.District }}{{ end }}.{{ end }}</p>
+                        </div>
+                        <div class="details-meta-row">
+                          <div><span class="details-label">City / Location:</span> <span class="details-value">{{ if $h.Location }}{{ $h.Location }}{{ else }}—{{ end }}</span></div>
+                          <div><span class="details-label">District:</span> <span class="details-value">{{ if $h.District }}{{ $h.District }}{{ else }}—{{ end }}</span></div>
+                          <div><span class="details-label">State:</span> <span class="details-value">{{ if $h.State }}{{ $h.State }}{{ else }}—{{ end }}</span></div>
+                          <div><span class="details-label">Classification:</span> <span class="details-value"><strong>{{ $h.Type }}</strong></span></div>
+                        </div>
+                      </div>
+                    </div>
 
-                <div class="mobile-card-meta">
-                  {{ if gt $h.SpecialtyCount 0 }}
-                    <span class="badge badge-pratham" style="font-size: 0.72rem;">{{ $h.SpecialtyCount }} Specialties</span>
-                  {{ end }}
-                  {{ if gt $h.DoctorCount 0 }}
-                    <span class="badge badge-network" style="font-size: 0.72rem;">{{ $h.DoctorCount }} Doctors</span>
-                  {{ end }}
-                </div>
+                    <!-- B. Medical Specialties -->
+                    <div class="hosp-details-block">
+                      <h4 class="details-section-heading">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        Medical Specialties ({{ $h.SpecialtyCount }})
+                      </h4>
+                      {{ if gt (len $h.SpecialtiesList) 0 }}
+                        <div class="details-chips-wrap">
+                          {{ range $h.SpecialtiesList }}
+                            <a href="/?specialization={{ . }}" class="spec-tag-chip" onclick="event.stopPropagation()">{{ . }}</a>
+                          {{ end }}
+                        </div>
+                      {{ else }}
+                        <p class="details-muted-note">No specific specialties cataloged for this healthcare center.</p>
+                      {{ end }}
+                    </div>
 
-                {{ if $h.SpecialtiesList }}
-                  <div class="mobile-card-specs">
-                    {{ range $h.SpecialtiesList }}
-                      <span class="spec-mini-pill">{{ . }}</span>
-                    {{ end }}
+                    <!-- C. Affiliated Doctors -->
+                    <div class="hosp-details-block">
+                      <h4 class="details-section-heading">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Doctors & Specialists ({{ $h.DoctorCount }})
+                      </h4>
+                      {{ if gt (len $h.DoctorsList) 0 }}
+                        <div class="details-doctors-list">
+                          {{ range $h.DoctorsList }}
+                            <div class="details-doc-item">
+                              <div class="doc-icon-circle">👨‍⚕️</div>
+                              <div class="doc-details-text">
+                                <div class="doc-name-qual-line">
+                                  <a href="/doctor/{{ .DoctorID }}" class="doc-profile-link" onclick="event.stopPropagation()">{{ .DisplayName }}</a>
+                                  {{ if .Qualifications }}<span class="badge badge-pratham" style="font-size: 0.7rem; padding: 1px 5px;">{{ .Qualifications }}</span>{{ end }}
+                                </div>
+                                {{ if .Specialties }}
+                                  <span class="doc-specs-line">{{ range $di, $s := .Specialties }}{{ if $di }}, {{ end }}{{ $s }}{{ end }}</span>
+                                {{ end }}
+                              </div>
+                            </div>
+                          {{ end }}
+                        </div>
+                      {{ else }}
+                        <p class="details-muted-note">Doctor affiliations can be reviewed on the full hospital profile page.</p>
+                      {{ end }}
+                    </div>
+
+                    <!-- D. Action Link -->
+                    <div class="hosp-details-footer">
+                      <a href="/hospital/{{ $h.ID }}" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.45rem 1rem;">
+                        View Full Hospital Profile & Departments →
+                      </a>
+                    </div>
                   </div>
-                {{ end }}
-
-                <div class="mobile-card-footer">
-                  <a href="/hospital/{{ $h.ID }}" class="btn btn-secondary mobile-card-btn">
-                    View Hospital Details →
-                  </a>
                 </div>
               </div>
             {{ end }}
-          {{ end }}
-        </div>
+          </div>
+
+          <!-- 2. OPTIONAL TABLE VIEW (Desktop / Tablet Toggle) -->
+          <div class="table-card" id="hosp-table-view" style="display: none;">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;">#</th>
+                    <th>Hospital Name</th>
+                    <th>Location / Area</th>
+                    <th>District</th>
+                    <th>State</th>
+                    <th>Type</th>
+                    <th>Specialties</th>
+                    <th>Doctors</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{ range $i, $h := .Result.Hospitals }}
+                    <tr class="clickable-row" data-href="/hospital/{{ $h.ID }}">
+                      <td style="font-weight: 600; color: var(--neutral-muted);">
+                        {{ add $offset (add $i 1) }}
+                      </td>
+                      <td>
+                        <a href="/hospital/{{ $h.ID }}" style="font-weight: 700; font-size: 0.95rem; color: var(--primary-blue);">
+                          {{ $h.HospitalName }}
+                        </a>
+                      </td>
+                      <td>{{ if $h.Location }}{{ $h.Location }}{{ else }}—{{ end }}</td>
+                      <td>{{ if $h.District }}{{ $h.District }}{{ else }}—{{ end }}</td>
+                      <td>{{ if $h.State }}{{ $h.State }}{{ else }}—{{ end }}</td>
+                      <td>
+                        {{ if eq $h.Type "Pratham" }}
+                          <span class="badge badge-pratham">Pratham</span>
+                        {{ else if eq $h.Type "Anchor" }}
+                          <span class="badge badge-pratham-neo">Anchor</span>
+                        {{ else if eq $h.Type "Network" }}
+                          <span class="badge badge-network">Network</span>
+                        {{ else if eq $h.Type "Exclusion" }}
+                          <span class="badge badge-blocked">Exclusion</span>
+                        {{ else }}
+                          <span class="badge badge-gray">{{ $h.Type }}</span>
+                        {{ end }}
+                      </td>
+                      <td>
+                        {{ if gt $h.SpecialtyCount 0 }}
+                          <span class="badge badge-pratham">{{ $h.SpecialtyCount }}</span>
+                        {{ else }}
+                          <span style="color: #94A3B8; font-size: 0.8rem;">—</span>
+                        {{ end }}
+                      </td>
+                      <td>
+                        {{ if gt $h.DoctorCount 0 }}
+                          <span class="badge badge-network">{{ $h.DoctorCount }}</span>
+                        {{ else }}
+                          <span style="color: #94A3B8; font-size: 0.8rem;">—</span>
+                        {{ end }}
+                      </td>
+                      <td style="text-align: right;">
+                        <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="event.stopPropagation(); switchListingView('cards'); setTimeout(function(){ toggleHospitalExpand('{{ $h.ID }}'); }, 50);">
+                          ⓘ Details
+                        </button>
+                      </td>
+                    </tr>
+                  {{ end }}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        {{ end }}
 
         <!-- Pagination Controls -->
         {{ if gt .Result.TotalPages 1 }}
@@ -407,6 +477,65 @@
 </div>
 
 <script>
+function toggleHospitalExpand(id) {
+  var card = document.getElementById('hosp-card-' + id);
+  var details = document.getElementById('hosp-details-' + id);
+  var btn = document.getElementById('info-btn-' + id);
+  if (!details || !card) return;
+
+  var isExpanded = details.style.display !== 'none';
+  if (isExpanded) {
+    details.style.display = 'none';
+    card.classList.remove('expanded');
+    if (btn) {
+      btn.setAttribute('aria-expanded', 'false');
+      btn.innerHTML = '<span class="info-icon-char">ⓘ</span>';
+    }
+  } else {
+    details.style.display = 'block';
+    card.classList.add('expanded');
+    if (btn) {
+      btn.setAttribute('aria-expanded', 'true');
+      btn.innerHTML = '<span class="info-icon-char">✕</span>';
+    }
+  }
+}
+
+function switchListingView(mode) {
+  var dirView = document.getElementById('hosp-directory-view');
+  var tblView = document.getElementById('hosp-table-view');
+  var btnCards = document.getElementById('btn-view-cards');
+  var btnTable = document.getElementById('btn-view-table');
+
+  if (mode === 'table' && tblView) {
+    if (dirView) dirView.style.display = 'none';
+    tblView.style.display = 'block';
+    if (btnCards) {
+      btnCards.style.background = '#FFF';
+      btnCards.style.color = 'var(--neutral-muted)';
+      btnCards.classList.remove('active');
+    }
+    if (btnTable) {
+      btnTable.style.background = 'var(--primary-blue)';
+      btnTable.style.color = '#FFF';
+      btnTable.classList.add('active');
+    }
+  } else {
+    if (dirView) dirView.style.display = 'flex';
+    if (tblView) tblView.style.display = 'none';
+    if (btnCards) {
+      btnCards.style.background = 'var(--primary-blue)';
+      btnCards.style.color = '#FFF';
+      btnCards.classList.add('active');
+    }
+    if (btnTable) {
+      btnTable.style.background = '#FFF';
+      btnTable.style.color = 'var(--neutral-muted)';
+      btnTable.classList.remove('active');
+    }
+  }
+}
+
 function updateQueryString(key, val) {
   const url = new URL(window.location.href);
   url.searchParams.set(key, val);

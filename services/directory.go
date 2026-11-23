@@ -364,6 +364,9 @@ func (s *DirectoryService) SearchHospitals(params models.SearchFilterParams) (*m
 		hospitals = append(hospitals, h)
 	}
 
+	// Populate doctors list for expandable cards
+	s.populateHospitalDoctorsBatch(hospitals)
+
 	totalPages := (totalCount + params.PageSize - 1) / params.PageSize
 	if totalPages == 0 {
 		totalPages = 1
@@ -1112,6 +1115,7 @@ func (s *DirectoryService) GetSpecialtiesDirectory(params models.SpecialtySearch
 				hospitals = append(hospitals, h)
 			}
 		}
+		s.populateHospitalDoctorsBatch(hospitals)
 		result.Hospitals = hospitals
 
 	case "doctors":
@@ -1357,5 +1361,61 @@ func (s *DirectoryService) GetSpecialtiesDirectory(params models.SpecialtySearch
 
 	return result, nil
 }
+
+// populateHospitalDoctorsBatch populates the doctor list for each hospital in the given slice in a single batch query
+func (s *DirectoryService) populateHospitalDoctorsBatch(hospitals []models.Hospital) {
+	if len(hospitals) == 0 {
+		return
+	}
+	hospIDs := make([]interface{}, len(hospitals))
+	placeholders := make([]string, len(hospitals))
+	hospMap := make(map[string]*models.Hospital)
+	for i := range hospitals {
+		hospIDs[i] = hospitals[i].ID
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		hospMap[hospitals[i].ID] = &hospitals[i]
+	}
+
+	docQuery := fmt.Sprintf(`
+		SELECT 
+			hd.hospital_id, hd.doctor_id, hd.display_name, 
+			COALESCE(d.qualifications, ''),
+			COALESCE((
+				SELECT string_agg(sp.canonical_name, ', ' ORDER BY sp.canonical_name)
+				FROM doctor_specializations ds
+				JOIN hospital_specializations hs ON ds.hospital_specialization_id = hs.id
+				JOIN specializations sp ON hs.specialization_id = sp.id
+				WHERE ds.hospital_doctor_id = hd.id
+			), '') as specialties
+		FROM hospital_doctors hd
+		JOIN doctors d ON hd.doctor_id = d.id
+		WHERE hd.hospital_id IN (%s) AND hd.status = 'active'
+		ORDER BY hd.hospital_id, hd.display_name ASC
+	`, strings.Join(placeholders, ", "))
+
+	docRows, err := s.db.Query(docQuery, hospIDs...)
+	if err != nil {
+		return
+	}
+	defer docRows.Close()
+
+	for docRows.Next() {
+		var hid, did, name, quals, specStr string
+		if err := docRows.Scan(&hid, &did, &name, &quals, &specStr); err == nil {
+			docItem := models.HospitalDoctorItem{
+				DoctorID:       did,
+				DisplayName:    name,
+				Qualifications: quals,
+			}
+			if specStr != "" {
+				docItem.Specialties = strings.Split(specStr, ", ")
+			}
+			if h, ok := hospMap[hid]; ok {
+				h.DoctorsList = append(h.DoctorsList, docItem)
+			}
+		}
+	}
+}
+
 
 

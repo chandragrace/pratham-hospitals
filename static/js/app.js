@@ -119,3 +119,29 @@ function clearAllFilters() {
   window.location.href = url.pathname;
 }
 
+// Toggle Hospital Expandable Details (inline accordion)
+function toggleHospitalExpand(id) {
+  var card = document.getElementById('hosp-card-' + id);
+  var details = document.getElementById('hosp-details-' + id);
+  var btn = document.getElementById('info-btn-' + id);
+  if (!details || !card) return;
+
+  var isExpanded = details.style.display !== 'none';
+  if (isExpanded) {
+    details.style.display = 'none';
+    card.classList.remove('expanded');
+    if (btn) {
+      btn.setAttribute('aria-expanded', 'false');
+      btn.innerHTML = '<span class="info-icon-char">ⓘ</span>';
+    }
+  } else {
+    details.style.display = 'block';
+    card.classList.add('expanded');
+    if (btn) {
+      btn.setAttribute('aria-expanded', 'true');
+      btn.innerHTML = '<span class="info-icon-char">✕</span>';
+    }
+  }
+}
+
+
