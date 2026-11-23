@@ -483,7 +483,11 @@ func (h *PublicHandler) BrowseSpecialtiesHandler(w http.ResponseWriter, r *http.
 	}
 	view := strings.TrimSpace(r.URL.Query().Get("view"))
 	if view == "" {
-		view = "grid"
+		if tab == "hospitals" {
+			view = "list"
+		} else {
+			view = "grid"
+		}
 	}
 	sortBy := strings.TrimSpace(r.URL.Query().Get("sort_by"))
 	if sortBy == "" {
