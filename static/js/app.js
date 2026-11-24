@@ -144,4 +144,76 @@ function toggleHospitalExpand(id) {
   }
 }
 
+// WhatsApp Sharing Utilities
+function getAbsoluteUrl(path) {
+  if (!path) return window.location.href;
+  if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0) return path;
+  return window.location.origin + path;
+}
+
+function openWhatsAppShare(text) {
+  var url = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+function shareCurrentSearchWhatsApp() {
+  var searchInput = document.getElementById('global-search-input') || document.getElementById('spec-search-input');
+  var query = searchInput ? searchInput.value.trim() : '';
+  var url = window.location.href;
+  var text = '🏥 *Pratham Hospital Directory Search*\n';
+  if (query) {
+    text += '🔍 Search: "' + query + '"\n';
+  }
+  text += 'Explore verified healthcare centres, accredited hospitals & clinical specialists:\n' + url;
+  openWhatsAppShare(text);
+}
+
+function shareHospitalWhatsApp(name, type, location, path) {
+  var fullUrl = getAbsoluteUrl(path);
+  var text = '🏥 *' + name + '*';
+  if (type) text += ' [' + type + ']';
+  text += '\n';
+  if (location && location.trim() !== '' && location.trim() !== '—') {
+    text += '📍 Location: ' + location.trim() + '\n';
+  }
+  text += 'View verified hospital details, clinical specialties & affiliated doctors:\n' + fullUrl;
+  openWhatsAppShare(text);
+}
+
+function shareDoctorWhatsApp(name, qualifications, specialties, path) {
+  var fullUrl = getAbsoluteUrl(path);
+  var text = '👨‍⚕️ *' + name + '*';
+  if (qualifications && qualifications.trim() !== '') text += ' (' + qualifications.trim() + ')';
+  text += '\n';
+  if (specialties && specialties.trim() !== '') {
+    text += '🩺 Specialties: ' + specialties.trim() + '\n';
+  }
+  text += 'View doctor affiliations & hospital details:\n' + fullUrl;
+  openWhatsAppShare(text);
+}
+
+function shareSpecialtyWhatsApp(name, path) {
+  var fullUrl = getAbsoluteUrl(path);
+  var text = '🩺 *' + name + ' - Medical Specialty*\n';
+  text += 'Find accredited hospitals and specialist physicians offering ' + name + ':\n' + fullUrl;
+  openWhatsAppShare(text);
+}
+
+function shareCurrentPageWhatsApp(title) {
+  var fullUrl = window.location.href;
+  var text = '🏥 *' + (title || document.title) + '*\n';
+  text += 'Pratham Healthcare Network & Hospital Directory:\n' + fullUrl;
+  openWhatsAppShare(text);
+}
+
+function shareGeoSelectionWhatsApp() {
+  var state = document.getElementById('badge-selected-state') ? document.getElementById('badge-selected-state').innerText.trim() : '';
+  var district = document.getElementById('badge-selected-district') ? document.getElementById('badge-selected-district').innerText.trim() : '';
+  var text = '🗺️ *Pratham Healthcare Geographic Directory*\n';
+  if (state && state !== 'All States') text += 'State: ' + state + '\n';
+  if (district && district !== 'All Districts') text += 'District: ' + district + '\n';
+  text += 'Browse healthcare network and hospitals by region:\n' + window.location.href;
+  openWhatsAppShare(text);
+}
+
 
